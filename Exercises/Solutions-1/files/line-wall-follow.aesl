@@ -1,0 +1,70 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--list of constants-->
+<constant value="0" name="STATE_LINE_FOLLOW"/>
+<constant value="1" name="STATE_WALL_FOLLOW"/>
+<constant value="2" name="STATE_FORWARD"/>
+<constant value="500" name="BLACK_THRESHOLD"/>
+<constant value="3000" name="WALL_THRESHOLD"/>
+<constant value="3000" name="WALL_DISTANCE"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node thymio-II-->
+<node nodeId="11196" name="thymio-II">var state = STATE_LINE_FOLLOW
+
+onevent prox
+	if state == STATE_LINE_FOLLOW then
+		call leds.top(32, 0, 0)
+		if prox.ground.delta[0]&lt;BLACK_THRESHOLD then
+			#turn right
+			motor.left.target = 100
+			motor.right.target = -50
+		end
+		if prox.ground.delta[0]>BLACK_THRESHOLD then
+			#turn left
+			motor.left.target = -50
+			motor.right.target = 100
+		end
+		if prox.horizontal[0]>WALL_THRESHOLD  then
+			state = STATE_WALL_FOLLOW
+		end
+	end
+
+	if state == STATE_WALL_FOLLOW then
+		call leds.top(0, 32, 0)
+		if prox.horizontal[0]>WALL_DISTANCE then
+			#turn right
+			motor.left.target = 100
+			motor.right.target = -50
+		end
+		if prox.horizontal[0]&lt;WALL_DISTANCE then
+			#turn left
+			motor.left.target = -50
+			motor.right.target = 100
+		end
+		if prox.ground.delta[0]&lt;BLACK_THRESHOLD and prox.ground.delta[1]&lt;BLACK_THRESHOLD  then
+			state = STATE_FORWARD
+			motor.left.target = 100
+			motor.right.target = 100
+		end
+	end
+	
+	if state == STATE_FORWARD then
+		call leds.top(0, 0, 32)
+		if prox.ground.delta[0]>BLACK_THRESHOLD or prox.ground.delta[1]>BLACK_THRESHOLD then
+			state = STATE_LINE_FOLLOW
+
+		end
+	end</node>
+
+
+</network>

@@ -1,0 +1,70 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--node -->
+<node name=""><![CDATA[# declare variables
+# Counter of timer events (100ms = 10 times a second)
+var time
+var i
+var period = 100
+var x[7]
+var y[2] = [1000,1000]
+var W_x[2*7] = [-3,-2,-1,0,0,3,0,
+					 0,0,-1,-2,-3,0,3]
+#var W_x[2*7] = [-1,-2,-3,0,0,1,0,
+#					 0,0,-3,-2,-1,0,1]
+var W_y[2] = [ 1, 1]
+
+var learning_rate = 0.1				 
+
+# reset outputs
+call sound.system(-1)
+call leds.top(0,0,0)
+call leds.bottom.left(0,0,0)
+call leds.bottom.right(0,0,0)
+call leds.circle(0,0,0,0,0,0,0,0)
+
+motor.left.target = y[0]
+motor.right.target = y[1]
+
+timer.period[0] = period
+
+sub update_x
+	x = prox.horizontal
+
+sub update_y
+	y[0] = y[0] * W_y[0]
+	for i in 0:6 do
+    		y[0] = y[0] + x[i]*W_x[i]
+	end
+	
+	y[1] = y[1] * W_y[1]
+	for i in 0:6 do
+    		y[1] = y[1] + x[i]*W_x[i+7]
+	end
+
+sub update_W
+	for i in 0:6 do
+    		W_x[i] = W_x[i] + learning_rate*x[i]*y[0]
+    		W_x[i+7] = W_x[i+7] + learning_rate*x[i]*y[1]
+	end
+	W_y[0] = W_y[0] + learning_rate*y[0]*y[0]
+	W_y[1] = W_y[1] + learning_rate*y[1]*y[1]
+
+sub update_motor
+	motor.left.target = y[0]
+	motor.right.target = y[1]
+
+onevent timer0 
+	callsub update_x
+	callsub update_y
+	callsub update_motor
+	callsub update_W
+	timer.period[0] = period]]></node>
+
+
+</network>
