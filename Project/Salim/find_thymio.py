@@ -7,7 +7,7 @@ distance_two_features = 2 #in cm
 # Load the image
 image1 = cv2.imread('thymio_cropped_3.jpg')
 image2 = cv2.imread('thymio_cropped_4.jpg')
-image3 = cv2.imread('thymio_path_cropped.jpg')
+image3 = cv2.imread('thymio_warped.png')
 
 # Convert the training image to RGB
 training_image_1 = cv2.cvtColor(image1, cv2.COLOR_BGR2RGB)

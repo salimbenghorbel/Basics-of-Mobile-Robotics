@@ -61,8 +61,9 @@ def four_point_transform(image, pts):
 
 # load the image and compute the ratio of the old height
 # to the new height, clone it, and resize it
-filename = 'document.png'
+filename = 'thymio_square.png'
 image = cv2.imread(filename, cv2.IMREAD_COLOR)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 ratio = image.shape[0] / 500.0
 orig = image.copy()
 image = imutils.resize(image, height = 500)
@@ -107,13 +108,14 @@ plt.show()
 warped = four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
 # convert the warped image to grayscale, then threshold it
 # to give it that 'black and white' paper effect
-warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
-T = threshold_local(warped, 11, offset = 10, method = "gaussian")
-warped = (warped > T).astype("uint8") * 255
+warped_gray = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+T = threshold_local(warped_gray, 11, offset = 10, method = "gaussian")
+warped_gray = (warped_gray > T).astype("uint8") * 255
 # show the original and scanned images
 print("STEP 3: Apply perspective transform")
 fx, plots = plt.subplots(1, 2, figsize=(20,10))
 plots[0].set_title("Original")
 plots[0].imshow(imutils.resize(orig, height = 650))
 plots[1].set_title("Scanned")
-plots[1].imshow(imutils.resize(warped, height = 650), cmap='gray')
+plots[1].imshow(imutils.resize(warped, height = 650))
+cv2.imwrite('thymio_warped.png', warped)
