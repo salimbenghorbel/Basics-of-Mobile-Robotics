@@ -109,23 +109,22 @@ class robot:
         t1 = 0
         t = 0
         if alpha > 0:
-      
             while t < dt:
                 t1 = time.time()
                 delta_t = t1 - t0 - t 
                 self.clockwise(th)
                 t = t1 - t0
                 self.odometry_angle(delta_t,alpha,dt)
-                self.stop(th)
+            self.stop(th)
         else:
         
-             while t < dt:
+            while t < dt:
                 t1 = time.time()
                 delta_t = t1 - t0 - t  
                 self.anticlockwise(th)
                 t = t1 - t0
                 self.odometry_angle(delta_t,alpha,dt)
-                self.stop(th)
+            self.stop(th)
   
     
         

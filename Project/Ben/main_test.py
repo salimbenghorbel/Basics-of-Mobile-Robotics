@@ -19,7 +19,7 @@ th = Thymio.serial(port="/dev/cu.usbmodem14101", refreshing_rate=0.1)
 
 all_target_points = [[0,0],[0.34,0.33],[0.64,0.87]]
 
-my_robot = robot(all_target_points)
+my_robot = robot.robot(all_target_points)
 
 while my_robot.on_goal() == False:
 
