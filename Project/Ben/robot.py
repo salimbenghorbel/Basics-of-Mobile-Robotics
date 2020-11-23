@@ -4,10 +4,10 @@ import time
 class robot:
     
     
-    def __init__(self, all_target_points):
-        self.x = 0
-        self.y = 0
-        self.theta = 0
+    def __init__(self, all_target_points, x_0, y_0, theta_0):
+        self.x = x_0
+        self.y = y_0
+        self.theta = theta_0
         self.all_target_points = all_target_points
         self.target_point = [0,0]
     
@@ -103,7 +103,7 @@ class robot:
    
     def turn(self,alpha,th):
         R = 0.047
-        v = 0.0250
+        v = 0.03050
         dt = abs(R * alpha / v)
         t0 = time.time()
         t1 = 0

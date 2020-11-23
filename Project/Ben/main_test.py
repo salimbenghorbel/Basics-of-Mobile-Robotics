@@ -14,15 +14,18 @@ sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
 
 th = Thymio.serial(port="/dev/cu.usbmodem14101", refreshing_rate=0.1)
 
-#%% Test
-
+#%% Initialisation à remplacer 
 
 all_target_points = [[0,0],[0.34,0.33],[0.64,0.87]]
+theta_0 = 0
+x_0 = 0
+y_0 = 0 
 
-my_robot = robot.robot(all_target_points)
 
+my_robot = robot.robot(all_target_points,x_0,y_0,theta_0)
+
+#%% boucle du prog
 while my_robot.on_goal() == False:
-
     my_robot.find_next_target_point()
     my_robot.turn_to_target_point(th)  
     my_robot.advance_to_target_point(th)
