@@ -18,7 +18,6 @@ y_0 = 0
 
 my_robot = robot.robot(all_target_points,x_0,y_0,theta_0)
 #%%
-
 def stop():
     
     """Shutdown all the Thymio motors"""
@@ -57,19 +56,6 @@ def local_avoidance(prox_sensors,th, verbose = True): #Local avoidance strategy
         my_robot.turn(-angle,th)
         my_robot.run_forward(d, th)
     
-# =============================================================================
-#     if max(prox_sensors[1:5]) != 0: #rotates to only detect with one sensor
-#         l_speed = 300
-#         r_speed = 2**16-300
-#     
-#     elif max(prox_sensors[2:5]) == 0 and prox_sensors[0] != 0: 
-#         l_speed = 20
-#         r_speed = 90
-#     
-#     th.set_var("motor.left.target", l_speed)
-#     th.set_var("motor.right.target", r_speed)
-# 
-# =============================================================================
     if front_sensor!=0 and max(side_sensors) == 0:   
         if verbose: print("saw something in right in front")
         d = 0.2
@@ -134,6 +120,6 @@ stop()
 #%%
 print(my_robot.theta)
 my_robot.turn(np.pi/3,th)
-print(todeg(my_robot.theta))
+print(my_robot.theta)
 #%%
 Thymio.close(th)
