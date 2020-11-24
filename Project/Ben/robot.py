@@ -11,15 +11,14 @@ class robot:
         self.all_target_points = all_target_points
         self.target_point = [0,0]
         self.th = th
+       
     
     def find_next_target_point(self):
-      
         i = self.all_target_points.index(self.target_point)
         self.target_point[0] = self.all_target_points[i+1][0]    
         self.target_point[1] = self.all_target_points[i+1][1]
         
     def turn_to_target_point(self):
-    
         theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
         alpha = theta_goal - self.theta
         self.turn(alpha)
@@ -56,9 +55,20 @@ class robot:
             return False
     
     def check_prox(self):
-        return True
+        prox_sensors = self.th["prox.horizontal"][0:5]
+        "Checks if horizontal proximity sensors see something"
+        
+        if max(prox_sensors) != 0:
+        
+            return True
+        else: 
+       
+            return False
     
     def local_avoidance(self):
+        print('local avoidance')
+        self.turn(1.507)
+        self.run_forward(0.1)
         self.stop()
         
     def odometry_forward(self,delta_t,v,dt):
@@ -91,7 +101,7 @@ class robot:
         t0 = time.time()
         t1 = 0
         t = 0   
-        while t < dt and self.check_prox():
+        while t < dt and self.check_prox() == False:
             t1 = time.time()
             delta_t = t1 - t0 - t
             self.forward()
