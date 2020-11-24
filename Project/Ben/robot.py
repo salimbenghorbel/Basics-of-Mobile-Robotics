@@ -11,6 +11,7 @@ class robot:
         self.all_target_points = all_target_points
         self.target_point = [0,0]
         self.th = th
+        self.prox_sensors = th["prox.horizontal"][0:5]
     
     def find_next_target_point(self):
       
@@ -56,7 +57,13 @@ class robot:
             return False
     
     def check_prox(self):
-        return True
+        
+        "Checks if horizontal proximity sensors see something"
+        
+        if max(self.prox_sensors) != 0:
+            return True
+        else: 
+            return False
     
     def local_avoidance(self):
         self.stop()
