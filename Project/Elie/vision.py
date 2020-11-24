@@ -1,7 +1,7 @@
 import cv2
 
 def get_image():
-    webcam = cv2.VideoCapture('http://192.168.0.18:8080/video')
+    webcam = cv2.VideoCapture('http://192.168.100.16:8888/video')
     check, frame = webcam.read()
     cv2.imwrite(filename='saved_img.jpg', img=frame)
     webcam.release()
@@ -10,7 +10,7 @@ def get_image():
     
 def stream_video():
     #print("Before URL")
-    cap = cv2.VideoCapture('http://192.168.0.18:8080/video')
+    cap = cv2.VideoCapture('http://192.168.100.16:8888/video')
     #print("After URL")
 
     while True:

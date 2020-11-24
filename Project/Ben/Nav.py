@@ -134,7 +134,7 @@ def runForward(d):
 
 def turn(alpha):
     R = 0.047
-    v = 0.03050
+    v = 0.03150
     dt = abs(R * alpha / v)
     t0 = time.time()
     t1 = 0
