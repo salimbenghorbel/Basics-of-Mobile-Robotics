@@ -1,1 +1,1 @@
-def rotate_robot():    def advance_to_target_point():
+def rotate_robot():    def advance_to_target_point():    def findNextTargetPoint(allTargetPoints,targetPoint):    def turnToTargetPoint(theta,targetPoint):    def advanceToTargetPoint(x,y,theta,targetPoint):    def onTargetPoint(x,y,targetPoint):    def onGoal(x,y,allTargetPoints):

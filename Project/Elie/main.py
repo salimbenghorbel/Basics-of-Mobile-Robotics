@@ -4,6 +4,7 @@ import time
 import serial
 
 # importing our modules
+
 import global_pos
 import vision
 import navigation as nav
@@ -18,8 +19,6 @@ th = Thymio.serial(port="/dev/cu.usbmodem14101", refreshing_rate=0.1)
 
 # definning flags and global variables
 thymio_coords = [0,0,0] #x, y and theta
-on_target_point = 1 # flag that signals if the robot is on a target point, 
-# the starting position can be considered as one
 goal = 0
 
 # getting picture of terrain from vision module
@@ -36,12 +35,14 @@ global_pos.define_coordonates()
 # of target_points
 target_point_array = global_pos.get_path()
 
-while goal == 0:
-    if on_target_point:
-        if target_point == objective:
+while !nav.onGoal(x,y,allTargetPoints):
+    
+    if nav.onTargetPoint(x,y,targetPoint):
+        
+        if allTargetPoints.targetPoint == objective:
             goal = 1
         else:
-            target_point = target_point_array[++]
-            nav.rotate_robot()
+            target_point = findNextTargetPoint(allTargetPoints,targetPoint)
+            nav.turnToTargetPoint(theta,targetPoint)
     else:
-        nav.advance_to_target_point()
+        advanceToTargetPoint(x,y,theta,targetPoint)
