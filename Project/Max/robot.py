@@ -4,12 +4,14 @@ import time
 class robot:
     
     
-    def __init__(self, all_target_points, x_0, y_0, theta_0):
+    def __init__(self, all_target_points, x_0, y_0, theta_0, vreal_max = 0.1525):
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
         self.all_target_points = all_target_points
         self.target_point = [0,0]
+        self.vreal_max = vreal_max
+        self.vThymio = None
     
     def find_next_target_point(self):
       
@@ -67,23 +69,22 @@ class robot:
     def odometry_angle(self,delta_t,alpha,dt):
         self.theta = self.theta + delta_t * alpha /dt
  
-    def forward(self,th):
-        th.set_var("motor.left.target", 100)
-        th.set_var("motor.right.target", 100)
+    def forward(self,th, l_speed = 98, r_speed = 102):
+        th.set_var("motor.left.target", l_speed)
+        th.set_var("motor.right.target", r_speed)
     
     def stop(self,th):
         th.set_var("motor.left.target", 0)
         th.set_var("motor.right.target", 0)
 
-    def clockwise(self,th):
-        th.set_var("motor.left.target", 2**16-100)
-        th.set_var("motor.right.target", 102)
+    def clockwise(self,th, l_speed = 100, r_speed = 100):
+        th.set_var("motor.left.target", 2**16-l_speed)
+        th.set_var("motor.right.target", r_speed)
     
-    def anticlockwise(self,th):
-        th.set_var("motor.left.target", 100)
-        th.set_var("motor.right.target", 2**16-102)
-
-
+    def anticlockwise(self,th, l_speed = 100, r_speed = 100):
+        th.set_var("motor.left.target", l_speed)
+        th.set_var("motor.right.target", 2**16-r_speed)
+        
     def run_forward(self,d,th):
         v = 0.03375
         dt = d/v 
@@ -125,6 +126,4 @@ class robot:
                 t = t1 - t0
                 self.odometry_angle(delta_t,alpha,dt)
             self.stop(th)
-  
-    
         

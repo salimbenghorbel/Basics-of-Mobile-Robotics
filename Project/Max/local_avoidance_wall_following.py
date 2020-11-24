@@ -7,10 +7,6 @@ import numpy as np
 from Thymio import Thymio
 import robot
 
-# Adding the src folder in the current directory as it contains the script
-# with the Thymio class
-sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
-
 #%% 
 th = Thymio.serial(port="\\.\COM5", refreshing_rate=0.1)
 
@@ -32,7 +28,7 @@ def stop():
     th.set_var("motor.right.target", 0)
     
 
-def local_avoidance(prox_sensors,th): #Local avoidance strategy
+def local_avoidance(prox_sensors,th, verbose = True): #Local avoidance strategy
     
     """
     Implement sequential strategy
@@ -40,9 +36,27 @@ def local_avoidance(prox_sensors,th): #Local avoidance strategy
     Input: proximity sensor values
     Output: Thymio dodges obstacle with a predefined sequence of movements
     """
+    front_sensor = prox_sensors[2]
+    left_sensors = prox_sensors[0:2]
+    right_sensors = prox_sensors[3:5]
+    del prox_sensors[2]
+    side_sensors = prox_sensors
     
-    l_speed = 0
-    r_speed = 0
+    print(side_sensors)
+    d = 0
+    angle = 0
+    
+    def dodge_sequence(d,angle,th):
+        """
+        Inputs: d = distance to travel straight [m], angle = angle to turn and avoid obstacle [rad]
+        Output: Thymio executes dodging sequence
+        
+        """
+        
+        my_robot.turn(angle,th)
+        my_robot.run_forward(d, th)
+        my_robot.turn(-angle,th)
+        my_robot.run_forward(d, th)
     
 # =============================================================================
 #     if max(prox_sensors[1:5]) != 0: #rotates to only detect with one sensor
@@ -57,11 +71,25 @@ def local_avoidance(prox_sensors,th): #Local avoidance strategy
 #     th.set_var("motor.right.target", r_speed)
 # 
 # =============================================================================
-    
-    my_robot.turn(np.pi/3,th)
-    my_robot.run_forward(0.2, th)
-    my_robot.turn(-np.pi/3,th)
-    my_robot.run_forward(0.2, th)
+    if front_sensor!=0 and max(side_sensors) == 0:   
+        if verbose: print("saw something in right in front")
+        d = 0.2
+        angle = np.pi/3 #has to turn a lot to be sure to avoid obstacle
+        
+        
+    elif max(left_sensors)!=0:
+        if verbose: print("saw something at left side, turning right")
+        d = 0.2
+        angle = -np.pi/4 #does not need big angle to avoid obstacle
+        
+    elif max(right_sensors)!=0:
+        if verbose: print("saw something at right side, turning left")
+        d = 0.2
+        angle = np.pi/4 #does not need big angle to avoid obstacle
+   
+    dodge_sequence(d,angle,th)     
+        
+        
 
     
 def FSM(verbose=True): #Finite State Machine
@@ -101,7 +129,7 @@ def FSM(verbose=True): #Finite State Machine
     
     stop()
 #%% 
-FSM()
+FSM() 
 
 #%% 
 stop()
