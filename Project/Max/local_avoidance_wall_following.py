@@ -9,7 +9,6 @@ import robot
 
 #%% 
 th = Thymio.serial(port="\\.\COM5", refreshing_rate=0.1)
-
 #%%
 all_target_points = [[0,0],[0.15,0.20],[0.30,0]]
 theta_0 = 0
@@ -130,9 +129,11 @@ def FSM(verbose=True): #Finite State Machine
     stop()
 #%% 
 FSM() 
-
 #%% 
 stop()
-
+#%%
+print(my_robot.theta)
+my_robot.turn(np.pi/3,th)
+print(todeg(my_robot.theta))
 #%%
 Thymio.close(th)
