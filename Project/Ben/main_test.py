@@ -10,7 +10,7 @@ import vision
 import four_point_transform
 import map_creation
 import cv2
-
+import global_pos
 #%%
 # Adding the src folder in the current directory as it contains the script
 # with the Thymio class
@@ -23,11 +23,15 @@ th = Thymio.serial(port="/dev/cu.usbmodem14101", refreshing_rate=0.1)
 image = vision.get_image()
 
 #%% Initialisation à remplacer 
-image = cv2.imread("saved_img.jpg", cv2.IMREAD_COLOR)
+image = cv2.imread("saved_img.png", cv2.IMREAD_COLOR)
 #%%
 warped = four_point_transform.four_mat(image)
 #%%
 dilation = map_creation.create_map(warped)
+#%%
+obstacles_vertices = vision.get_obstacle_vertices(dilation,dilation)
+#%%
+sp = global_pos.build_visibility_graph(obstacles_vertices,[1000,1500],[2100,50])
 #%%
 all_target_points = [[0,0],[0.34,0.33],[0.59,0.87]]
 theta_0 = 0

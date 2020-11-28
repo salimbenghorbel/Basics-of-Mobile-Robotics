@@ -68,8 +68,8 @@ def create_map(warped):
     
     # remove noise
     final_k_bw = cv2.cvtColor(final_k, cv2.COLOR_RGB2GRAY)
-    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (1,1))
-    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
+    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (15,15))
     mask = cv2.morphologyEx(final_k_bw, cv2.MORPH_CLOSE, se1)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, se2)
     
@@ -80,10 +80,11 @@ def create_map(warped):
     plt.imshow(out)
     
     # dilate
-    size_kernel = 4*scaling #Tune obstacle size changing
+    size_kernel = 2*scaling #Tune obstacle size changing
     kernel = np.ones((size_kernel,size_kernel),np.uint8)
     dilation = cv2.dilate(out,kernel,iterations = 1)
     plt.figure()
     plt.imshow(dilation)
+    cv2.imwrite('saved_out.png',dilation)
     return dilation
     

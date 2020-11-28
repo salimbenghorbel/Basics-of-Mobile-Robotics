@@ -11,20 +11,22 @@ def get_image():
 
 # def filter_image():
     
-def get_obstacle_vertices():
+def get_obstacle_vertices(img,img2):
     # Reading image 
-    img2 = cv2.imread('saved_img.jpg', cv2.IMREAD_COLOR) 
+    img2 = cv2.imread('saved_out.png', cv2.IMREAD_COLOR) 
     #img2 = dilation  
 
     # Reading same image in another  
     # variable and converting to gray scale. 
-    img = cv2.imread('saved_img.jpg', cv2.IMREAD_GRAYSCALE) 
-    #img = dilation   
+    img = cv2.imread('saved_out.png', cv2.IMREAD_GRAYSCALE) 
+    #img = dilation  
+    
 
+    #img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     # Converting image to a binary image 
     # ( black and white only image). 
     _, threshold = cv2.threshold(img, 110, 255, cv2.THRESH_BINARY) 
-  
+   
     # Detecting contours in image. 
     contours, _= cv2.findContours(threshold, cv2.RETR_TREE, 
                                   cv2.CHAIN_APPROX_SIMPLE) 
