@@ -23,7 +23,7 @@ th = Thymio.serial(port="/dev/cu.usbmodem14101", refreshing_rate=0.1)
 image = vision.get_image()
 
 #%% Initialisation à remplacer 
-image = cv2.imread("saved_img.png", cv2.IMREAD_COLOR)
+image = cv2.imread("saved_img.jpg", cv2.IMREAD_COLOR)
 #%%
 warped = four_point_transform.four_mat(image)
 #%%

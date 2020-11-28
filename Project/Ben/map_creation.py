@@ -49,7 +49,7 @@ def create_map(warped):
     plt.imshow(final_r)
     
     
-    t_k = 50
+    t_k = 100
     black_thresh = cv2.inRange(warped, np.array([-t_k, -t_k, -t_k]), np.array([t_k, t_k, t_k]))
     black_mask = 255 -black_thresh 
     black_mask_rgb = cv2.cvtColor(black_mask, cv2.COLOR_GRAY2RGB)
@@ -68,8 +68,8 @@ def create_map(warped):
     
     # remove noise
     final_k_bw = cv2.cvtColor(final_k, cv2.COLOR_RGB2GRAY)
-    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (15,15))
+    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (1,1))
+    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
     mask = cv2.morphologyEx(final_k_bw, cv2.MORPH_CLOSE, se1)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, se2)
     
