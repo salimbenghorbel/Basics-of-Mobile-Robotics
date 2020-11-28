@@ -67,13 +67,7 @@ class robot:
             return True
         else:
             return False
-        
-    def odometry_forward(self,delta_t,v,dt):
-        self.x = self.x + v * delta_t * math.cos(self.theta)
-        self.y = self.y + v * delta_t * math.sin(self.theta)
 
-    def odometry_angle(self,delta_t,alpha,dt):
-        self.theta = self.theta + delta_t * alpha /dt
  
     def forward(self, l_speed = 100, r_speed = 100):
         self.th.set_var("motor.left.target", l_speed)
@@ -155,7 +149,7 @@ class robot:
             delta_t = t1 - t0 - t
             self.forward()
             t = t1 - t0
-            self.odometry_forward(delta_t,v,dt)
+            self.new_odometry(delta_t)
         if t>= dt:
             self.stop()
         else: #if got out of "while" because saw something, enter local avoidance
@@ -174,8 +168,9 @@ class robot:
                 delta_t = t1 - t0 - t 
                 self.clockwise()
                 t = t1 - t0
-                self.odometry_angle(delta_t,alpha,dt)
+                self.new_odometry(delta_t)
             self.stop()
+            
         else:
         
             while t < dt:
@@ -183,5 +178,36 @@ class robot:
                 delta_t = t1 - t0 - t  
                 self.anticlockwise()
                 t = t1 - t0
-                self.odometry_angle(delta_t,alpha,dt)
+                self.new_odometry(delta_t)
             self.stop()
+           
+    def odometry_forward(self,delta_t,v):
+        self.x = self.x + v * delta_t * math.cos(self.theta)
+        self.y = self.y + v * delta_t * math.sin(self.theta)
+
+    def odometry_angle(self,delta_t,alpha,dt):
+        self.theta = self.theta + delta_t * alpha /dt
+        
+    def new_odometry(self,delta_t):
+        b = 0.095
+        v = 0.03050
+        d_r = self.th.get_var('motor.right.speed')/100 * v * delta_t
+        d_l = self.th.get_var('motor.left.speed')/100 * v * delta_t
+        d_s = (d_r + d_l)/2 
+        d_theta = (d_r - d_l)/b
+        d_theta = math.radians(d_theta)
+        print(d_theta)
+        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
+        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+        self.theta = self.theta + d_theta
+     
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

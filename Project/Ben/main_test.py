@@ -34,3 +34,17 @@ my_robot.stop()
 print('arrivé')
 print(my_robot.x,my_robot.y)
 
+#%% test calibaration
+i = 0
+while i <5000:
+    th.set_var("motor.left.target", 2**16-100)
+    L = th.get_var('motor.left.speed')
+    L = L/(2**16) - 100
+    print(L)
+    i = i+1
+th.set_var("motor.left.target",0)
+
+#%% stop
+my_robot.stop()
+
+

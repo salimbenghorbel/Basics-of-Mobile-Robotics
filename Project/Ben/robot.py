@@ -1,16 +1,19 @@
 import math
 import time
+import numpy as np
 
 class robot:
     
     
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0,verbose = True):
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
         self.all_target_points = all_target_points
         self.target_point = [0,0]
         self.th = th
+        self.verbose = verbose
+        self.v = 0.0320
        
     
     def find_next_target_point(self):
@@ -66,18 +69,60 @@ class robot:
             return False
     
     def local_avoidance(self):
-        print('local avoidance')
-        self.turn(1.507)
-        self.run_forward(0.1)
-        self.stop()
+             
+        """
+        Implement sequential strategy
         
-    def odometry_forward(self,delta_t,v,dt):
-        self.x = self.x + v * delta_t * math.cos(self.theta)
-        self.y = self.y + v * delta_t * math.sin(self.theta)
-
-    def odometry_angle(self,delta_t,alpha,dt):
-        self.theta = self.theta + delta_t * alpha /dt
- 
+        Input: proximity sensor values
+        Output: Thymio dodges obstacle with a predefined sequence of movements
+        """
+        print('local avoidance')
+        if self.verbose: print("\t Entering local avoidance")
+        """ --- Storing sensors value for convenience --- """
+        prox_sensors = self.th["prox.horizontal"][0:5]
+        front_sensor = prox_sensors[2]
+        left_sensors = prox_sensors[0:2]
+        right_sensors = prox_sensors[3:5]
+        side_sensors = []
+        for i in range(len(prox_sensors)):
+            if i == 2: continue
+            else: side_sensors .append(prox_sensors[i])
+        
+        d = 0
+        angle = 0
+        
+        """ --- Choosing avoidance strategy --- """
+        if front_sensor!=0 and max(side_sensors) == 0:   
+            if self.verbose: print("\t Saw something in right in front, turn")
+            d = 0.2
+            angle = np.pi/3 #has to turn a lot to be sure to avoid obstacle
+            
+        elif max(left_sensors)!=0:
+            if self.verbose: print("Saw something at left side, turning right")
+            d = 0.2
+            angle = -np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
+            
+        elif max(right_sensors)!=0:
+            if self.verbose: print("Saw something at right side, turning left")
+            d = 0.2
+            angle = np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
+       
+        """ --- Launching avoidance strategy --- """
+        self.dodge_sequence(d,angle)
+        if self.verbose: print("\t Obstacle dodged, going back to global navigation")
+    
+    def dodge_sequence(self, d, angle):
+        """
+        Inputs: d = distance to travel straight [m], angle = angle to turn and avoid obstacle [rad]
+        Output: Thymio executes dodging sequence
+        
+        """
+        self.turn(angle)
+        self.run_forward(d)
+        self.turn(-angle)
+        self.run_forward(d)
+        
+        
     def forward(self):
         self.th.set_var("motor.left.target", 100)
         self.th.set_var("motor.right.target", 100)
@@ -88,54 +133,77 @@ class robot:
 
     def clockwise(self):
         self.th.set_var("motor.left.target", 2**16-100)
-        self.th.set_var("motor.right.target", 102)
+        self.th.set_var("motor.right.target", 100)
     
     def anticlockwise(self):
         self.th.set_var("motor.left.target", 100)
-        self.th.set_var("motor.right.target", 2**16-102)
+        self.th.set_var("motor.right.target", 2**16-100)
 
 
     def run_forward(self,d):
-        v = 0.03375
+        v = self.v
         dt = d/v 
         t0 = time.time()
         t1 = 0
         t = 0   
-        while t < dt and self.check_prox() == False:
+        while t < dt and not self.check_prox():
             t1 = time.time()
             delta_t = t1 - t0 - t
             self.forward()
             t = t1 - t0
-            self.odometry_forward(delta_t,v,dt)
+            self.odometry(delta_t)
         if t>= dt:
             self.stop()
-        else:
+        else: #if got out of "while" because saw something, enter local avoidance
             self.local_avoidance()
    
     def turn(self,alpha):
-        R = 0.047
-        v = 0.03050
-        dt = abs(R * alpha / v)
+    
         t0 = time.time()
         t1 = 0
         t = 0
+        theta_init = self.theta
         if alpha > 0:
-            while t < dt:
+            while self.theta < theta_init + alpha:
                 t1 = time.time()
-                delta_t = t1 - t0 - t 
+                delta_t = t1 - t0 - t
                 self.clockwise()
                 t = t1 - t0
-                self.odometry_angle(delta_t,alpha,dt)
+                self.odometry(delta_t)
             self.stop()
         else:
         
-            while t < dt:
+            while self.theta < self.theta + alpha:
                 t1 = time.time()
-                delta_t = t1 - t0 - t  
                 self.anticlockwise()
-                t = t1 - t0
-                self.odometry_angle(delta_t,alpha,dt)
+                delta_t = t1 - t0
+                self.odometry(delta_t)
+                t0 = time.time()
             self.stop()
-  
+
+        
+        
+    def odometry(self,delta_t):
+        b = 0.095
+        v = self.v
+        s_r = self.th.get_var('motor.right.speed')
+        s_l = self.th.get_var('motor.left.speed') 
+        if s_r > 2**8:
+            s_r = s_r/2**16 - 100
+        if s_l > 2**8:
+            s_l = s_l/2**16 - 100
+        d_r = s_r/100 * v * delta_t
+        d_l = s_l/100 * v * delta_t
+      
+        d_s = (d_r + d_l)/2
+    
+        d_theta = (d_r - d_l)/b
+        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
+        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+        self.theta = self.theta + d_theta
+
+    
+    
+    
     
         
