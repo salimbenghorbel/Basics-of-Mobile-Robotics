@@ -94,22 +94,23 @@ class robot:
         """ --- Choosing avoidance strategy --- """
         if front_sensor!=0 and max(side_sensors) == 0:   
             if self.verbose: print("\t Saw something in right in front, turn")
-            d = 0.2
+            d = 0.1
             angle = np.pi/3 #has to turn a lot to be sure to avoid obstacle
             
         elif max(left_sensors)!=0:
             if self.verbose: print("Saw something at left side, turning right")
-            d = 0.2
+            d = 0.1
             angle = -np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
             
         elif max(right_sensors)!=0:
             if self.verbose: print("Saw something at right side, turning left")
-            d = 0.2
+            d = 0.1
             angle = np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
        
         """ --- Launching avoidance strategy --- """
         self.dodge_sequence(d,angle)
-        if self.verbose: print("\t Obstacle dodged, going back to global navigation")
+        if self.verbose: 
+            print("\t Obstacle dodged, going back to global navigation")
     
     def dodge_sequence(self, d, angle):
         """
@@ -117,10 +118,14 @@ class robot:
         Output: Thymio executes dodging sequence
         
         """
+        print('trun0')
         self.turn(angle)
+        print('turn')
         self.run_forward(d)
-        self.turn(-angle)
-        self.run_forward(d)
+        print('finsish')
+        self.turn_to_target_point()
+        self.advance_to_target_point()
+        
         
         
     def forward(self):
@@ -173,12 +178,12 @@ class robot:
             self.stop()
         else:
         
-            while self.theta < self.theta + alpha:
+            while self.theta > theta_init + alpha:
                 t1 = time.time()
+                delta_t = t1 - t0 - t
                 self.anticlockwise()
-                delta_t = t1 - t0
+                t = t1 - t0
                 self.odometry(delta_t)
-                t0 = time.time()
             self.stop()
 
         
