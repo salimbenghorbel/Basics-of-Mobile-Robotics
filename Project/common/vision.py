@@ -395,3 +395,4 @@ if False:
     target_position_m = target_position_px * scaling_px_2_m
     
     obstacle_vertices_m = vis.get_obstacle_vertices(dilated_obstacle_map, scaling_px_2_m)
+    
