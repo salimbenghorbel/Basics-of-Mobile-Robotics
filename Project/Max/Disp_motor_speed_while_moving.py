@@ -5,7 +5,7 @@ from Thymio import Thymio
 import robot
 
 #%% 
-th = Thymio.serial(port="\\.\COM4", refreshing_rate=0.1)
+th = Thymio.serial(port="\\.\COM5", refreshing_rate=0.1)
 
 #%%
 all_target_points = [[0,0],[0.15,0.20],[0.30,0]]

@@ -14,6 +14,8 @@ class robot:
         self.vreal_max = 0.1525 # max measured speed of thymio in [m/s]
         self.th = th
         self.verbose = verbose
+        self.cL = None
+        self.cR = None
     
     def find_next_target_point(self):
               
@@ -91,10 +93,14 @@ class robot:
         Output: Thymio executes dodging sequence
         
         """
+        if self.verbose: print("\t Performing dodge sequence")
         self.turn(angle)
         self.run_forward(d)
-        self.turn(-angle)
-        self.run_forward(d)
+        #self.turn(-angle)
+        #self.run_forward(d)
+        self.turn_to_target_point()
+        self.advance_to_target_point()
+        
     
     def local_avoidance(self):
         
@@ -116,26 +122,31 @@ class robot:
             else: side_sensors .append(prox_sensors[i])
         
         d = 0
+        d_front = 0.2
+        d_side = 0.1
         angle = 0
+        angle_side = np.pi/2
+        angle_front = np.pi/2
         
         """ --- Choosing avoidance strategy --- """
         if front_sensor!=0 and max(side_sensors) == 0:   
             if self.verbose: print("\t Saw something in right in front, turn")
-            d = 0.2
-            angle = np.pi/3 #has to turn a lot to be sure to avoid obstacle
+            d = d_front
+            angle = angle_front #has to turn a lot to be sure to avoid obstacle
             
         elif max(left_sensors)!=0:
             if self.verbose: print("Saw something at left side, turning right")
-            d = 0.2
-            angle = -np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
+            d = d_side
+            angle = -angle_side # obstacle seen at Thymio's side = no need for big angle to avoid it
             
         elif max(right_sensors)!=0:
             if self.verbose: print("Saw something at right side, turning left")
-            d = 0.2
-            angle = np.pi/4 # obstacle seen at Thymio's side = no need for big angle to avoid it
+            d = d_side
+            angle = angle_side # obstacle seen at Thymio's side = no need for big angle to avoid it
        
         """ --- Launching avoidance strategy --- """
         self.dodge_sequence(d,angle)
+        
         if self.verbose: print("\t Obstacle dodged, going back to global navigation")
         
     def run_forward(self,d):
