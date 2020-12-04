@@ -13,7 +13,8 @@ class vision:
     def get_camera_image(self):
         webcam = cv2.VideoCapture(self.camera_ip)
         check, frame = webcam.read()
-        cv2.imwrite(filename='media/saved_img.jpg', img=frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        cv2.imwrite(filename='media/saved_img.png', img=frame)
         webcam.release()
         return frame
 
@@ -220,7 +221,7 @@ class vision:
 
     def locate_target_px(self, warped, target_color):
         
-        color_tolerance = 25
+        color_tolerance = 50
         
         pixels_in_range = cv2.inRange(warped, np.array([c - color_tolerance for c in target_color]), np.array([c + color_tolerance for c in target_color]))
         color_mask = 255 - pixels_in_range
@@ -259,7 +260,7 @@ class vision:
         color range of feature.
         '''
         
-        color_tolerance = 25
+        color_tolerance = 50
         
         map_filtered_gray = self.apply_color_filter(map_image, feature_color, color_tolerance)
         
@@ -297,7 +298,7 @@ class vision:
         Get average position of key points.
         '''
         
-        color_tolerance = 25
+        color_tolerance = 50
         
         feature_filtered_gray = self.apply_color_filter(feature_image, feature_color, color_tolerance)
         map_filtered_gray = self.apply_color_filter(map_image, feature_color, color_tolerance)
@@ -351,40 +352,63 @@ class vision:
         
         return feature_position
 
-    def locate_thymio(self, map_image, feature_image_1, feature_color_1, feature_image_2, feature_color_2, distance_two_features_m):
+        
+
+    def locate_thymio(self, map_image, feature_image_front, feature_color_front, feature_image_back, feature_color_back, scaling_px_2_m):
         # feature 1 is at the front of thymio, feature 2 is at the back
-        feature_position_1 = self.locate_feature_in_map_orb(map_image, feature_image_1, feature_color_1)
-        feature_position_2 = self.locate_feature_in_map_orb(map_image, feature_image_2, feature_color_2)
-        orientation_vector = feature_position_2 - feature_position_1
+        feature_position_front = self.locate_feature_in_map_orb(map_image, feature_image_front, feature_color_front)
+        feature_position_back = self.locate_feature_in_map_orb(map_image, feature_image_back, feature_color_back)
+        #feature_position_front = self.locate_feature_in_map_colorpixels(feature_color_front, map_image)
+        #feature_position_back = self.locate_feature_in_map_colorpixels(feature_color_back, map_image)
+        orientation_vector = feature_position_front - feature_position_back
         
-        scaling_px_2_m = distance_two_features_m/np.linalg.norm(orientation_vector) # m/px--> distance_m = distance_px * scaling_px_2_m
-        
-        thymio_x_m = (feature_position_1[0] + feature_position_2[0]) * 0.5 * scaling_px_2_m
-        thymio_y_m = (feature_position_1[1] + feature_position_2[1]) * 0.5 * scaling_px_2_m
+        thymio_x_m =  feature_position_back[0]  * scaling_px_2_m
+        thymio_y_m = feature_position_back[1] * scaling_px_2_m
         thymio_theta_rad = math.atan2(orientation_vector[1], orientation_vector[0])
+        cv2.line(map_image, (int(feature_position_front[0]), int(feature_position_front[1])), (int(feature_position_back[0]), int(feature_position_back[1])), (255, 0, 0), 30)
+        plt.imshow(map_image)
+        print(feature_position_front*scaling_px_2_m,feature_position_back*scaling_px_2_m)
+        return thymio_x_m, thymio_y_m, thymio_theta_rad
+    
+    def scale_map(self,map_image, map_x, map_y):
+        # height --> up-down , y
+        # width --> right-left, x
+        (orig_height, orig_width) = map_image.shape[:2]
+        new_height = int(orig_width * map_y/map_x)
+        orig = map_image.copy()
+        scaled_map =  cv2.resize(orig, (orig_width,new_height))
+        scaling_px_2_m = map_y/scaled_map.shape[0]
+        #return scaled_map, scaling_px_2_m
+        return map_image,map_y/map_image.shape[0]
+    
+    def draw_line(pointA,pointB,img):
+        cv2.line(img, (int(pointA[0]), int(pointA[1])), (int(pointB[0]), int(pointB[1])), (255, 0, 0), 30)
+        plt.imshow(img)
+
         
-        return thymio_x_m, thymio_y_m, thymio_theta_rad, scaling_px_2_m
 
 if False:
-    distance_two_features_m = 0.1
+    map_x = 0.7
+    map_y = 1
     thymio_clearance_m = 0.2
-    filename = 'media/thymio_square.png'
+    filename = 'media/thymio_square.jpg'
     image = cv2.imread(filename, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
-    vis = vision(camera_ip='http://192.168.100.16:8080/video', plot=True)
-    warped = vis.warp_map(image) # or warped = vis.warp_map(vis.get_image())
-    
+    vis = vision(camera_ip=0, plot=True)
+    #warped = vis.warp_map(vis.get_camera_image())
+    warped = vis.warp_map(image)
+    scaled, scaling_px_2_m = vis.scale_map(warped, map_x, map_y)
     # Load the feature images
-    feature_image_1 = cv2.imread('media/thymio_star.png')
-    feature_image_2 = cv2.imread('media/thymio_thunder.png')
+    feature_image_front = cv2.imread('media/thymio_star.png')
+    feature_image_back = cv2.imread('media/thymio_thunder.png')
     # Convert the features images to RGB
-    feature_image_1 = cv2.cvtColor(feature_image_1, cv2.COLOR_BGR2RGB)
-    feature_image_2 = cv2.cvtColor(feature_image_2, cv2.COLOR_BGR2RGB)
+    feature_image_front = cv2.cvtColor(feature_image_front, cv2.COLOR_BGR2RGB)
+    feature_image_back = cv2.cvtColor(feature_image_back, cv2.COLOR_BGR2RGB)
     
     feature_color_1 = [0x41, 0x57, 0x33]
-    feature_color_2 = [0x33, 0x5D, 0x19]
-    thymio_x_m, thymio_y_m, thymio_theta_rad, scaling_px_2_m = vis.locate_thymio(warped, feature_image_1, feature_color_1, feature_image_2, feature_color_2, distance_two_features_m)
+    feature_color_back = [0x33, 0x5D, 0x19]
+    thymio_x_m, thymio_y_m, thymio_theta_rad = vis.locate_thymio(warped, feature_image_front, feature_color_1, feature_image_back, feature_color_back, scaling_px_2_m)
     
     obstacle_map = vis.create_obstacle_map(warped)
     thymio_clearance_px = int(thymio_clearance_m / scaling_px_2_m)

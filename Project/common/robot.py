@@ -6,17 +6,18 @@ import pyvisgraph as vg
 class robot:
     
     
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v, vertices_array,verbose = True):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b, vertices_array,verbose = True):
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
         self.all_target_points = all_target_points
-        self.target_point = [0,0]
+        self.target_point = [all_target_points[0][0],all_target_points[0][1]]
         self.th = th
         self.verbose = verbose
         self.v = v
         self.vertices_array = vertices_array
-        self.obstacles = vg.build_obstacles(vertices_array)
+        self.log = [[x_0,y_0,theta_0]]
+        self.b = b
       
        
     
@@ -24,10 +25,10 @@ class robot:
         i = self.all_target_points.index(self.target_point)
         self.target_point[0] = self.all_target_points[i+1][0]    
         self.target_point[1] = self.all_target_points[i+1][1]
-        print('j')
+        print('search target point')
         
     def turn_to_target_point(self):
-        theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
+        theta_goal = math.atan2(self.target_point[1] + self.y, self.target_point[0] - self.x)
         alpha = theta_goal - self.theta
         self.turn(alpha)
         print(alpha)
@@ -35,6 +36,7 @@ class robot:
     
 
     def advance_to_target_point(self):
+        print(self.theta)
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
   
@@ -47,10 +49,13 @@ class robot:
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
         d = math.sqrt(math.pow(d_x,2)+math.pow(d_y,2))
+        
         if d < R:
             return True
+            print(self.x,self.y)
         else:
             return False
+            print('false')
 
     def on_goal(self):
         R = 0.05
@@ -200,7 +205,7 @@ class robot:
           #  print('global obstacle')
         
     def odometry(self,delta_t):
-        b = 0.095
+        b = self.b
         v = self.v
         s_r = self.th.get_var('motor.right.speed')
         s_l = self.th.get_var('motor.left.speed') 
@@ -217,7 +222,7 @@ class robot:
         self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
         self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
         self.theta = self.theta + d_theta
-
+        self.log.append([self.x,self.y,self.theta])
     
     
     
