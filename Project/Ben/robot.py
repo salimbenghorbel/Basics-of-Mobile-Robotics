@@ -1,11 +1,12 @@
 import math
 import time
 import numpy as np
+import pyvisgraph as vg
 
 class robot:
     
     
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0,verbose = True):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v, vertices_array,verbose = True):
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
@@ -13,13 +14,17 @@ class robot:
         self.target_point = [0,0]
         self.th = th
         self.verbose = verbose
-        self.v = 0.0320
+        self.v = v
+        self.vertices_array = vertices_array
+        self.obstacles = vg.build_obstacles(vertices_array)
+      
        
     
     def find_next_target_point(self):
         i = self.all_target_points.index(self.target_point)
         self.target_point[0] = self.all_target_points[i+1][0]    
         self.target_point[1] = self.all_target_points[i+1][1]
+        print('j')
         
     def turn_to_target_point(self):
         theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
@@ -118,15 +123,13 @@ class robot:
         Output: Thymio executes dodging sequence
         
         """
-        print('trun0')
+
         self.turn(angle)
-        print('turn')
         self.run_forward(d)
-        print('finsish')
         self.turn_to_target_point()
         self.advance_to_target_point()
-        
-        
+   
+   
         
     def forward(self):
         self.th.set_var("motor.left.target", 100)
@@ -151,7 +154,7 @@ class robot:
         t0 = time.time()
         t1 = 0
         t = 0   
-        while t < dt and not self.check_prox():
+        while t < dt and not self.check_prox() and self.avoid_global_obstacle():
             t1 = time.time()
             delta_t = t1 - t0 - t
             self.forward()
@@ -186,7 +189,15 @@ class robot:
                 self.odometry(delta_t)
             self.stop()
 
-        
+    def avoid_global_obstacle(self):
+        p = vg.Point( self.x + 0.05 * math.cos(self.theta), self.y + 0.05 * math.sin(self.theta))
+        graph = vg.VisGraph()
+        graph.build(self.obstacles)
+        obstacle = vg.point_in_polygon(p, graph)
+        if obstacle == -1:
+            return True
+        else: 
+            return False
         
     def odometry(self,delta_t):
         b = 0.095

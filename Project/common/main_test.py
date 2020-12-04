@@ -40,10 +40,9 @@ all_target_points = [[0,0],[0.34,0.33],[0.59,0.87]]
 theta_0 = 0
 x_0 = 0
 y_0 = 0 
-v = 0.03200
 
 
-my_robot = robot.robot(th,all_target_points,x_0,y_0,theta_0,v,obstacles_vertices)
+my_robot = robot.robot(th,all_target_points,x_0,y_0,theta_0)
 
 #%% boucle du prog
 while my_robot.on_goal() == False:
