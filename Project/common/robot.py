@@ -6,7 +6,7 @@ import pyvisgraph as vg
 class robot:
     
     
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b, vertices_array,verbose = True):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b,v_odo, vertices_array,verbose = True):
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
@@ -18,7 +18,7 @@ class robot:
         self.vertices_array = vertices_array
         self.log = [[x_0,y_0,theta_0]]
         self.b = b
-      
+        self.v_odo = v_odo
        
     
     def find_next_target_point(self):
@@ -28,7 +28,7 @@ class robot:
         print('search target point')
         
     def turn_to_target_point(self):
-        theta_goal = math.atan2(self.target_point[1] + self.y, self.target_point[0] - self.x)
+        theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
         alpha = theta_goal - self.theta
         self.turn(alpha)
         print(alpha)
@@ -36,12 +36,13 @@ class robot:
     
 
     def advance_to_target_point(self):
-        print(self.theta)
+        print ('theta = ',self.theta)
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
   
         d = math.sqrt(math.pow(d_x,2)+math.pow(d_y,2))
         self.run_forward(d)
+        print(d)
     
 
     def on_target_point(self):
@@ -159,6 +160,8 @@ class robot:
         t0 = time.time()
         t1 = 0
         t = 0   
+        i =1
+     
         while t < dt and not self.check_prox():# and self.avoid_global_obstacle():
             t1 = time.time()
             delta_t = t1 - t0 - t
@@ -169,7 +172,7 @@ class robot:
             self.stop()
         else: #if got out of "while" because saw something, enter local avoidance
             self.local_avoidance()
-   
+          
     def turn(self,alpha):
     
         t0 = time.time()
@@ -218,7 +221,7 @@ class robot:
       
         d_s = (d_r + d_l)/2
     
-        d_theta = (d_r - d_l)/b
+        d_theta = (d_r - d_l)/b 
         self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
         self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
         self.theta = self.theta + d_theta

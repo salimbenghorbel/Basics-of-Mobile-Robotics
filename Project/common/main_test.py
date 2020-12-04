@@ -64,15 +64,18 @@ all_target_points = []
 for i in range(0,len(sp)):
     all_target_points.append([sp[i].x,sp[i].y])
 #%%
-v = 0.03250
+v = 0.02900
+v_odo = 0.0290
 b = 0.095
-my_robot = robot.robot(th,all_target_points,x_0,y_0,theta_0,v,b,obstacles)
+my_robot = robot.robot(th,all_target_points,x_0,y_0,theta_0,v,b,v_odo,obstacles)
+
 utilities.draw_path(all_target_points, scaling_px_2_m,warped)
 
 #%% boucle du prog
 while my_robot.on_goal() == False:
     my_robot.find_next_target_point()
     my_robot.turn_to_target_point()  
+    my_robot.stop()
     my_robot.advance_to_target_point()
     if my_robot.on_target_point() == False:
         print("pas trouvé le tg")
@@ -98,4 +101,5 @@ def draw_odometry(log,img):
     plt.imshow(img)
 
 draw_odometry(my_robot.log,warped)
+
 
