@@ -4,9 +4,18 @@ import numpy as np
 import pyvisgraph as vg
 
 class robot:
+    '''
+    This class contains all the method and data storage required to perform the 
+    motion to be applied to the thymio (target points, position and orientation,
+                                        obstacle avoidance, etc.)
+    '''    
     
-    
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b,v_odo, vertices_array,verbose = True):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v, verbose = True):
+        """
+        iniatilisation of the robot class, containing the position and angle of the thymio 
+        but also the target points and its speed
+        """
+        
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
@@ -15,37 +24,51 @@ class robot:
         self.th = th
         self.verbose = verbose
         self.v = v
-        self.vertices_array = vertices_array
         self.log = [[x_0,y_0,theta_0]]
-        self.b = b
-        self.v_odo = v_odo
+        self.b = 0.095
+        self.v_right = 104
+        self.v_left = 96
+      
        
     
     def find_next_target_point(self):
+        """
+        find the next target points in the list f all target points
+        """
         i = self.all_target_points.index(self.target_point)
         self.target_point[0] = self.all_target_points[i+1][0]    
         self.target_point[1] = self.all_target_points[i+1][1]
         print('search target point')
         
     def turn_to_target_point(self):
+        """
+        This method turns the robot such that it faces the desired target point 
+        while keeping its position constant.
+        """
         theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
         alpha = theta_goal - self.theta
         self.turn(alpha)
-        print(alpha)
+        print("Target angle = ",alpha)
         return alpha
     
 
     def advance_to_target_point(self):
-        print ('theta = ',self.theta)
+        """
+        This method advances the robot to the desired target point through a 
+        straight line.
+        """
+        print("Theta = ",self.theta)
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
   
         d = math.sqrt(math.pow(d_x,2)+math.pow(d_y,2))
         self.run_forward(d)
-        print(d)
     
 
     def on_target_point(self):
+        """
+        check if the robot is on the target point with a tolerance R
+        """
         R = 0.05
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
@@ -59,6 +82,9 @@ class robot:
             print('false')
 
     def on_goal(self):
+        """
+        check if the robot is on the target point with a tolerance R
+        """
         R = 0.05
         d_x = self.all_target_points[-1][0] - self.x
         d_y = self.all_target_points[-1][1] - self.y
@@ -122,6 +148,8 @@ class robot:
         self.dodge_sequence(d,angle)
         if self.verbose: 
             print("\t Obstacle dodged, going back to global navigation")
+        
+        
     
     def dodge_sequence(self, d, angle):
         """
@@ -132,36 +160,35 @@ class robot:
 
         self.turn(angle)
         self.run_forward(d)
-        self.turn_to_target_point()
-        self.advance_to_target_point()
-   
    
         
     def forward(self):
-        self.th.set_var("motor.left.target", 100)
-        self.th.set_var("motor.right.target", 100)
+        self.th.set_var("motor.left.target", self.v_left)
+        self.th.set_var("motor.right.target", self.v_right)
     
     def stop(self):
         self.th.set_var("motor.left.target", 0)
         self.th.set_var("motor.right.target", 0)
 
-    def clockwise(self):
-        self.th.set_var("motor.left.target", 2**16-100)
-        self.th.set_var("motor.right.target", 100)
-    
     def anticlockwise(self):
-        self.th.set_var("motor.left.target", 100)
-        self.th.set_var("motor.right.target", 2**16-100)
+        self.th.set_var("motor.left.target", 2**16-self.v_left)
+        self.th.set_var("motor.right.target", self.v_right)
+    
+    def clockwise(self):
+        self.th.set_var("motor.left.target", self.v_left)
+        self.th.set_var("motor.right.target", 2**16-self.v_right)
 
 
     def run_forward(self,d):
+        """
+        Move the robot forward of a distance D and whith the prox sensor checking
+        """
+
         v = self.v
         dt = d/v 
         t0 = time.time()
         t1 = 0
         t = 0   
-        i =1
-     
         while t < dt and not self.check_prox():# and self.avoid_global_obstacle():
             t1 = time.time()
             delta_t = t1 - t0 - t
@@ -172,9 +199,12 @@ class robot:
             self.stop()
         else: #if got out of "while" because saw something, enter local avoidance
             self.local_avoidance()
-          
+        print("Theta après run_forward = ", self.theta)
+   
     def turn(self,alpha):
-    
+        """
+        turn the robot of an angle alpha
+        """
         t0 = time.time()
         t1 = 0
         t = 0
@@ -183,7 +213,7 @@ class robot:
             while self.theta < theta_init + alpha:
                 t1 = time.time()
                 delta_t = t1 - t0 - t
-                self.clockwise()
+                self.anticlockwise()
                 t = t1 - t0
                 self.odometry(delta_t)
             self.stop()
@@ -192,40 +222,57 @@ class robot:
             while self.theta > theta_init + alpha:
                 t1 = time.time()
                 delta_t = t1 - t0 - t
-                self.anticlockwise()
+                self.clockwise()
                 t = t1 - t0
                 self.odometry(delta_t)
+                
             self.stop()
 
-    #def avoid_global_obstacle(self):
-     #  p = vg.Point( self.x + 0.05 * math.cos(self.theta), self.y + 0.05 * math.sin(self.theta))
-      #  graph = vg.VisGraph()
-       # graph.build(self.obstacles)
-        #obstacle = vg.point_in_polygon(p, graph)
-        ##   return True
-        #else: 
-         #   return False
-          #  print('global obstacle')
         
     def odometry(self,delta_t):
+        """
+        This method performs odometry to estimate robot coordinates and orientation
+        on the map by extracting measures from motor speeds.
+        """
         b = self.b
         v = self.v
         s_r = self.th.get_var('motor.right.speed')
         s_l = self.th.get_var('motor.left.speed') 
         if s_r > 2**8:
-            s_r = s_r/2**16 - 100
+            s_r = s_r/2**16 - self.v_right
         if s_l > 2**8:
-            s_l = s_l/2**16 - 100
-        d_r = s_r/100 * v * delta_t
-        d_l = s_l/100 * v * delta_t
+            s_l = s_l/2**16 - self.v_left
+        d_r = s_r/self.v_right * v * delta_t
+        d_l = s_l/self.v_left * v * delta_t
       
         d_s = (d_r + d_l)/2
     
-        d_theta = (d_r - d_l)/b 
-        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
-        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+        d_theta = (d_r - d_l)/b
+        self.x = self.x  + d_s * math.cos(self.theta)
+        self.y = self.y  + d_s * math.sin(self.theta)
         self.theta = self.theta + d_theta
+        self.theta = ((self.theta + math.pi)%(2*math.pi) - math.pi)
         self.log.append([self.x,self.y,self.theta])
+        
+    # def odometry_forward(self,delta_t):
+    #     b = self.b
+    #     v = self.v
+    #     s_r = self.th.get_var('motor.right.speed')
+    #     s_l = self.th.get_var('motor.left.speed') 
+    #     if s_r > 2**8:
+    #         s_r = s_r/2**16 - self.v_right
+    #     if s_l > 2**8:
+    #         s_l = s_l/2**16 - self.v_left
+    #     d_r = s_r/100 * v * delta_t
+    #     d_l = s_l/100 * v * delta_t
+      
+    #     d_s = (d_r + d_l)/2
+    
+    #     d_theta = (d_r - d_l)/b
+    #     self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
+    #     self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+    #     self.theta = self.theta + d_theta
+    #     self.log.append([self.x,self.y,self.theta])
     
     
     

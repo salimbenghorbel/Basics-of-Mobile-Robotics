@@ -6,21 +6,75 @@ import matplotlib.pyplot as plt
 import math
 
 class vision:
+    '''
+    This class contains the required methods for the vision module, including:
+        * detecting the map and warp perspective to rectangular shape.
+        * locating thymio orientation and position based off feature points.
+        * locating target point.
+        * extracting obstacles and extending them with thymio clearance.
+    This class relies on a multitude of computer vision techniques and performs
+    heavy targeted filtering steps to extract precise information from camera 
+    pictures.
+    Filters used by this class are: thresholding, canny, dilation, erosion,
+    opening, closing, color filtering, gaussian blurr, etc.
+    '''
     def __init__(self, camera_ip, plot):
+        '''
+        Initialisation of the vision class.
+
+        Parameters
+        ----------
+        camera_ip : string for ip or number for local camera
+            Ip of camera feed.
+        plot : boolean
+            Whether or not to plot computed images.
+
+        Returns
+        -------
+        None.
+
+        '''
         self.camera_ip = camera_ip
         self.plot = plot
+        self.camera_img_idx =0
     
     def get_camera_image(self):
+        '''
+        This method captures an image from webcam feed, saves it to a file and
+        returns it.
+        Returns
+        -------
+        frame : image
+            Image capture from camera feed.
+
+        '''
         webcam = cv2.VideoCapture(self.camera_ip)
         check, frame = webcam.read()
-        cv2.imwrite(filename='media/saved_img.png', img=frame)
+        cv2.imwrite(filename='media/saved_img{}.png'.format(self.camera_img_idx), img=frame)
+        self.camera_img_idx = self.camera_img_idx + 1
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         webcam.release()
         return frame
 
     def get_obstacle_vertices(self, image_gray, scaling_px_2_m):
         '''
+        This method takes as input a grayscale image with polygon obstacles such that
+        bright pixels are obstacles and dark obstacle are free and returns the 
+        coordinates of obstacle vertices in an array.
         cr https://www.geeksforgeeks.org/find-co-ordinates-of-contours-using-opencv-python/
+
+        Parameters
+        ----------
+        image_gray : image in grayscale
+            Image containing obstacles as bright pixels.
+        scaling_px_2_m : float
+            Image scaling from pixels to meters.
+
+        Returns
+        -------
+        vertices_array : array
+            Array containing the list of vertices coordinates in meters.
+
         '''
 
         image_rgb = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
@@ -69,10 +123,23 @@ class vision:
 
 
     def order_points(self, pts):
-        # initialzie a list of coordinates that will be ordered
-        # such that the first entry in the list is the top-left,
-        # the second entry is the top-right, the third is the
-        # bottom-right, and the fourth is the bottom-left
+        '''
+        Initialzie a list of coordinates that will be ordered
+        such that the first entry in the list is the top-left,
+        the second entry is the top-right, the third is the
+        bottom-right, and the fourth is the bottom-left
+
+        Parameters
+        ----------
+        pts : a (4,2) points array.
+            A set of points coordinates to order.
+
+        Returns
+        -------
+        rect : a (4,2) points array.
+            The array containing the same input points but ordered like desired.
+
+        '''
         rect = np.zeros((4, 2), dtype = "float32")
         # the top-left point will have the smallest sum, whereas
         # the bottom-right point will have the largest sum
@@ -89,6 +156,26 @@ class vision:
         return rect
 
     def four_point_transform(self, image, pts):
+        '''
+        cr: https://medium.com/@evergreenllc2020/building-document-scanner-with-opencv-and-python-2306ee65c3db
+        This method takes as input an image and a set of points coordinates. It
+        extracts the area enclosed within the points and stretches it to a
+        rectangular shape.
+
+        Parameters
+        ----------
+        image : image
+            source image.
+        pts : (4,2) array of points.
+            Corner points to stretch to.
+
+        Returns
+        -------
+        warped : image
+            Part of the image enclosed inside the corner points and stretch to
+            have a rectangular shape.
+
+        '''
         # obtain a consistent order of the points and unpack them
         # individually
         rect = self.order_points(pts)
@@ -124,6 +211,23 @@ class vision:
 
 
     def warp_map(self, image):
+        '''
+        cr: https://medium.com/@evergreenllc2020/building-document-scanner-with-opencv-and-python-2306ee65c3db
+        This image takes as input an image of a map taken from a random angle,
+        detects the rectangular shape of the map and returns a rectangular image
+        containing only the map.
+        
+        Parameters
+        ----------
+        image : image
+            Image containing the map taken from a random angle.
+
+        Returns
+        -------
+        warped : image
+            An image of the map with transformed perspective.
+
+        '''
         # get the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
         ratio = image.shape[0] / 500.0
@@ -149,17 +253,10 @@ class vision:
         # largest ones, and initialize the screen contour
         cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
-        cnts = sorted(cnts, key = cv2.contourArea, reverse = True)[:5]
-        # loop over the contours
-        for c in cnts:
-            # approximate the contour
-            peri = cv2.arcLength(c, True)
-            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-            # if our approximated contour has four points, then we
-            # can assume that we have found our screen
-            if len(approx) == 4:
-                screenCnt = approx
-                break
+        cnts = sorted(cnts, key = ( lambda x: cv2.arcLength(x,True)), reverse = True)[:5]
+            
+        c = cnts[0]
+        screenCnt = self.order_points(c.reshape(-1,2))
         
         # apply the four point transform to obtain a top-down
         # view of the original image
@@ -177,6 +274,23 @@ class vision:
 
 
     def create_obstacle_map(self, warped):
+        '''
+        This method takes as input an image of the warped map and filters it
+        in such a way that it extracts the obstacles and the free parts of the
+        map. In the input, obstacles are dark and the map is bright. For the 
+        output, the obstacles are white pixels.
+
+        Parameters
+        ----------
+        warped : image
+            Warped image of the map.
+
+        Returns
+        -------
+        obstacle_map : image
+            A black and white image with obstacles as white.
+
+        '''
         
         # look for black pixels only
         color_tolerance = 30
@@ -211,6 +325,23 @@ class vision:
 
 
     def dilate_obstacle_map(self, obstacle_map, thymio_clearance_px):
+        '''
+        This method performs morphological dilation to obstacle map such that
+        it takes nto account the thymio clearance.
+
+        Parameters
+        ----------
+        obstacle_map : image
+            black and white obstacle image.
+        thymio_clearance_px : integer
+            Amount of pixels for the obstacles to be dilated by.
+
+        Returns
+        -------
+        dilated_obstacle_map : image
+            Dilated obstacle map.
+
+        '''
         # dilate
         kernel = np.ones((thymio_clearance_px,thymio_clearance_px),np.uint8)
         dilated_obstacle_map = cv2.dilate(obstacle_map,kernel,iterations = 1)
@@ -223,16 +354,33 @@ class vision:
 
 
     def locate_target_px(self, warped, target_color):
+        '''
+        This method locates the target with a certain color from the warped
+        map image.
+
+        Parameters
+        ----------
+        warped : image
+            Image of the warped map.
+        target_color : (3,) RGB color array.
+            RGB color of the target to locate.
+
+        Returns
+        -------
+        target_position : (2,) position array.
+            Position in pixel of the located target.
+
+        '''
         
         color_tolerance = 50
-        
+        # extract pixels only within a certain tolerance of the target color.
         pixels_in_range = cv2.inRange(warped, np.array([c - color_tolerance for c in target_color]), np.array([c + color_tolerance for c in target_color]))
         color_mask = 255 - pixels_in_range
-        
+        # apply color mask to source image and make it black and white
         color_mask_rgb = cv2.cvtColor(color_mask, cv2.COLOR_GRAY2RGB)
         target_pixels_rgb = 255 - cv2.max(warped, color_mask_rgb)
         target_pixels_gray = cv2.cvtColor(target_pixels_rgb, cv2.COLOR_RGB2GRAY)
-        
+        # target position = mean position of all extracted white pixels.
         target_pixels_coordinates = cv2.findNonZero(target_pixels_gray)
         target_position = np.average(target_pixels_coordinates,axis=0)[0]
         
@@ -246,11 +394,31 @@ class vision:
 
 
     def apply_color_filter(self, image, color, color_tolerance):
-        
+        '''
+        Applies a color filter to an image and extract the pixels that are within
+        a certain tolerance from the desired color.
+
+        Parameters
+        ----------
+        image : image
+            Image to be filtered.
+        color : (3,) RGB color array/list.
+            RGB color to filter with.
+        color_tolerance : float
+            Color tolerance.
+
+        Returns
+        -------
+        filtered_pixels_gray : Image
+            A black and white image with white pixels as the one within the color
+            range.
+
+        '''
+        # Create color mask
         pixels_in_range = cv2.inRange(image, np.array([c - color_tolerance for c in color]), np.array([c + color_tolerance for c in color]))
         color_mask = 255 - pixels_in_range
         color_mask_rgb = cv2.cvtColor(color_mask, cv2.COLOR_GRAY2RGB)
-        
+        # Filter input image.
         filtered_pixels_rgb = 255 - cv2.max(image, color_mask_rgb)
         filtered_pixels_gray = cv2.cvtColor(filtered_pixels_rgb, cv2.COLOR_RGB2GRAY)
         
@@ -261,6 +429,19 @@ class vision:
         '''
         apply color filter to map image and get average position of pixels in 
         color range of feature.
+
+        Parameters
+        ----------
+        feature_color : (3,) RGB color array/list.
+            RGB color of the feature to find.
+        map_image : image
+            Map image.
+
+        Returns
+        -------
+        feature_position : (2,) pixel position array
+            Position in pixel of the feature in map_image.
+
         '''
         
         color_tolerance = 30
@@ -279,6 +460,21 @@ class vision:
             
         
     def plot_key_points(self, image, keypoints):
+        '''
+        This method plots keypoints in map image.
+
+        Parameters
+        ----------
+        image : image
+            Map image.
+        keypoints : list/array.
+            List of keypoints coordinates in pixel.
+
+        Returns
+        -------
+        None.
+
+        '''
         keypoints_without_size = np.copy(image)
         keypoints_with_size = np.copy(image)
         
@@ -296,9 +492,26 @@ class vision:
 
     def locate_feature_in_map_orb(self, map_image, feature_image, feature_color):
         '''
+        cr: https://www.geeksforgeeks.org/feature-matching-using-orb-algorithm-in-python-opencv/
         apply color filter to map image and feature image. 
         Then apply ORB algorithm to get position of key points in map image.
         Get average position of key points.
+        Detection is rotation and scaling independent but is color dependent.
+
+        Parameters
+        ----------
+        map_image : image
+            Image of the map.
+        feature_image : image
+            Image of the feature.
+        feature_color : (3,) RGB color array/list
+            RGB color of the feature.
+
+        Returns
+        -------
+        feature_position : (2,) pixel position array.
+            Position of the feature detected using ORB.
+
         '''
         
         color_tolerance = 30
@@ -348,6 +561,8 @@ class vision:
             plt.imshow(results)
             plt.show()
             
+        # Feature Position is the weighted average of the matched keypoints. 
+        # Weight is inverse of match distance.
         feature_keypoints_pos = np.reshape([feature_keypoints[mat.queryIdx].pt for mat in matches],(len(matches),2))
         map_keypoints_pos = np.reshape([map_keypoints[mat.trainIdx].pt for mat in matches], (len(matches),2))
         weights = [1/match.distance for match in matches]
@@ -358,22 +573,77 @@ class vision:
         
 
     def locate_thymio(self, map_image, feature_image_front, feature_color_front, feature_image_back, feature_color_back, scaling_px_2_m):
+        '''
+        This method locates the thymio coordinates and orientation in the warped 
+        map based of two images of features purposely placed on top of the 
+        thymio. Color filtering is used to improve feature detection algorithms.
+        Either ORB or locating with colored pixels in filtered map are available
+        to be used.
+
+        Parameters
+        ----------
+        map_image : image
+            Warped image of the map.
+        feature_image_front : image
+            Image of feature placed on front of thymio.
+        feature_color_front : (3,) RGB color array/list
+            Color array of the front feature.
+        feature_image_back : image
+            Image of feature placed on back of thymio.
+        feature_color_back : (3,) RGB color array/list
+            Color array of the back feature.
+        scaling_px_2_m : float
+            scaling from pixels to meters.
+
+        Returns
+        -------
+        thymio_x_m : float
+            Thymio x position in meters on the map.
+        thymio_y_m : float
+            Thymio y position in meters on the map.
+        thymio_theta_rad : float
+            Thymio orientation on the map.
+
+        '''
         # feature 1 is at the front of thymio, feature 2 is at the back
         # feature_position_front = self.locate_feature_in_map_orb(map_image, feature_image_front, feature_color_front)
         # feature_position_back = self.locate_feature_in_map_orb(map_image, feature_image_back, feature_color_back)
         feature_position_front = self.locate_feature_in_map_colorpixels(feature_color_front, map_image)
         feature_position_back = self.locate_feature_in_map_colorpixels(feature_color_back, map_image)
-        orientation_vector = feature_position_front - feature_position_back
-        
+
+        # scale coordinates in m.
         thymio_x_m =  feature_position_back[0]  * scaling_px_2_m
         thymio_y_m = feature_position_back[1] * scaling_px_2_m
+        # extract orientation with atan2.
+        orientation_vector = feature_position_front - feature_position_back
         thymio_theta_rad = math.atan2(orientation_vector[1], orientation_vector[0])
+        
         cv2.line(map_image, (int(feature_position_front[0]), int(feature_position_front[1])), (int(feature_position_back[0]), int(feature_position_back[1])), (255, 0, 0), 30)
         plt.imshow(map_image)
         print(feature_position_front,feature_position_back)
         return thymio_x_m, thymio_y_m, thymio_theta_rad
     
     def scale_map(self,map_image, map_x, map_y):
+        '''
+        This method scales a warped map image to match the real dimensions in
+        meters of the physical map.
+        Parameters
+        ----------
+        map_image : image
+            Image of the warped map.
+        map_x : float
+            Map x dimension in m.
+        map_y : float
+            Map y dimension in m.
+
+        Returns
+        -------
+        scaled_map : image
+            Map scaled with physical aspect ratio.
+        scaling_px_2_m : float
+            map scaling from pixel to m.
+
+        '''
         # height --> up-down , y
         # width --> right-left, x
         (orig_height, orig_width) = map_image.shape[:2]
@@ -382,19 +652,37 @@ class vision:
         scaled_map =  cv2.resize(orig, (orig_width,new_height))
         scaling_px_2_m = map_y/scaled_map.shape[0]
         return scaled_map, scaling_px_2_m
-        #return map_image,map_y/map_image.shape[0]
     
     def draw_line(pointA,pointB,img):
+        '''
+        This method draws a map between two points on img.
+
+        Parameters
+        ----------
+        pointA : (2,) position array/list
+            position of point A in pixels.
+        pointB : (2,) position array/list
+            position of point B in pixels..
+        img : image
+            Map image.
+
+        Returns
+        -------
+        None.
+
+        '''
         cv2.line(img, (int(pointA[0]), int(pointA[1])), (int(pointB[0]), int(pointB[1])), (255, 0, 0), 30)
         plt.imshow(img)
 
         
-
-if False:
-    map_x = 0.7
-    map_y = 1
-    thymio_clearance_m = 0.2
-    filename = 'media/thymio_square.jpg'
+'''
+Example of use for the vision module API.
+'''
+if True:
+    map_x = 0.89
+    map_y = 0.86
+    thymio_clearance_m = 0.12
+    filename = 'media/saved_img.png'
     image = cv2.imread(filename, cv2.IMREAD_COLOR)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
@@ -403,15 +691,15 @@ if False:
     warped = vis.warp_map(image)
     scaled, scaling_px_2_m = vis.scale_map(warped, map_x, map_y)
     # Load the feature images
-    feature_image_front = cv2.imread('media/thymio_star.png')
-    feature_image_back = cv2.imread('media/thymio_thunder.png')
+    feature_image_front = cv2.imread('media/thymio_circle_green.png')
+    feature_image_back = cv2.imread('media/thymio_circle_blue.png')
     # Convert the features images to RGB
     feature_image_front = cv2.cvtColor(feature_image_front, cv2.COLOR_BGR2RGB)
     feature_image_back = cv2.cvtColor(feature_image_back, cv2.COLOR_BGR2RGB)
     
-    feature_color_1 = [0x41, 0x57, 0x33]
-    feature_color_back = [0x33, 0x5D, 0x19]
-    thymio_x_m, thymio_y_m, thymio_theta_rad = vis.locate_thymio(warped, feature_image_front, feature_color_1, feature_image_back, feature_color_back, scaling_px_2_m)
+    feature_color_front = [8, 72, 47]
+    feature_color_back = [39, 52, 104]
+    thymio_x_m, thymio_y_m, thymio_theta_rad = vis.locate_thymio(warped, feature_image_front, feature_color_front, feature_image_back, feature_color_back, scaling_px_2_m)
     
     obstacle_map = vis.create_obstacle_map(warped)
     thymio_clearance_px = int(thymio_clearance_m / scaling_px_2_m)
@@ -422,4 +710,4 @@ if False:
     target_position_m = target_position_px * scaling_px_2_m
     
     obstacle_vertices_m = vis.get_obstacle_vertices(dilated_obstacle_map, scaling_px_2_m)
-    
+        
