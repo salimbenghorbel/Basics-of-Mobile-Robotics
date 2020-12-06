@@ -655,7 +655,7 @@ class vision:
 '''
 Example of use for the vision module API.
 '''
-if True:
+if False:
     map_x = 0.7
     map_y = 1
     thymio_clearance_m = 0.2
@@ -674,9 +674,9 @@ if True:
     feature_image_front = cv2.cvtColor(feature_image_front, cv2.COLOR_BGR2RGB)
     feature_image_back = cv2.cvtColor(feature_image_back, cv2.COLOR_BGR2RGB)
     
-    feature_color_1 = [8, 72, 47]
-    feature_color_2 = [39, 52, 104]
-    thymio_x_m, thymio_y_m, thymio_theta_rad = vis.locate_thymio(warped, feature_image_front, feature_color_1, feature_image_back, feature_color_back, scaling_px_2_m)
+    feature_color_front = [8, 72, 47]
+    feature_color_back = [39, 52, 104]
+    thymio_x_m, thymio_y_m, thymio_theta_rad = vis.locate_thymio(warped, feature_image_front, feature_color_front, feature_image_back, feature_color_back, scaling_px_2_m)
     
     obstacle_map = vis.create_obstacle_map(warped)
     thymio_clearance_px = int(thymio_clearance_m / scaling_px_2_m)
