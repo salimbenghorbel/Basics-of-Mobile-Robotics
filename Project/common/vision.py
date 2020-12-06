@@ -470,6 +470,7 @@ class vision:
 
     def locate_feature_in_map_orb(self, map_image, feature_image, feature_color):
         '''
+        cr: https://www.geeksforgeeks.org/feature-matching-using-orb-algorithm-in-python-opencv/
         apply color filter to map image and feature image. 
         Then apply ORB algorithm to get position of key points in map image.
         Get average position of key points.
