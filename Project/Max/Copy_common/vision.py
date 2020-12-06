@@ -133,7 +133,8 @@ class vision:
         # convert the image to grayscale, blur it, and find edges
         # in the image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        gray = cv2.GaussianBlur(gray, (5,5), 0)
+        k = 15
+        gray = cv2.GaussianBlur(gray, (k,k), 0)
         edged = cv2.Canny(gray, 75, 200)
         
         #show the original image and the edge detected image
@@ -159,7 +160,11 @@ class vision:
             if len(approx) == 4:
                 screenCnt = approx
                 break
-        
+            
+        # c = cnts[0]
+        # peri = cv2.arcLength(c, True)
+        # screenCnt = cv2.approxPolyDP(c, 0.1 * peri, True)
+            
         # apply the four point transform to obtain a top-down
         # view of the original image
         warped = self.four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
@@ -178,7 +183,7 @@ class vision:
     def create_obstacle_map(self, warped):
         
         # look for black pixels only
-        color_tolerance = 50
+        color_tolerance = 30
         black_thresh = cv2.inRange(warped, np.array([-color_tolerance, -color_tolerance, -color_tolerance]), np.array([color_tolerance, color_tolerance, color_tolerance]))
         black_mask = 255 -black_thresh 
         black_mask_rgb = cv2.cvtColor(black_mask, cv2.COLOR_GRAY2RGB)
@@ -188,8 +193,10 @@ class vision:
         
         # remove noise: close then open
         black_masked_gray= cv2.cvtColor(black_masked_rgb, cv2.COLOR_RGB2GRAY)
-        se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-        se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (15,15))
+        k1 = 9
+        k2 = 25
+        se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (k1,k1))
+        se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (k2,k2))
         mask_close = cv2.morphologyEx(black_masked_gray, cv2.MORPH_CLOSE, se1)
         mask_close_open = cv2.morphologyEx(mask_close, cv2.MORPH_OPEN, se2)
         

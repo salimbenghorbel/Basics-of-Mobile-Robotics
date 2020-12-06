@@ -28,15 +28,15 @@ class robot:
         print('search target point')
         
     def turn_to_target_point(self):
-        theta_goal = math.atan2(self.target_point[1] + self.y, self.target_point[0] - self.x)
+        theta_goal = math.atan2(self.target_point[1] - self.y, self.target_point[0] - self.x)
         alpha = theta_goal - self.theta
         self.turn(alpha)
-        print(alpha)
+        print("Target angle = ",alpha)
         return alpha
     
 
     def advance_to_target_point(self):
-        print(self.theta)
+        print("Theta = ",self.theta)
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
   
@@ -121,6 +121,8 @@ class robot:
         self.dodge_sequence(d,angle)
         if self.verbose: 
             print("\t Obstacle dodged, going back to global navigation")
+        
+        
     
     def dodge_sequence(self, d, angle):
         """
@@ -131,8 +133,8 @@ class robot:
 
         self.turn(angle)
         self.run_forward(d)
-        self.turn_to_target_point()
-        self.advance_to_target_point()
+        # self.turn_to_target_point()
+        # self.advance_to_target_point()
    
    
         
@@ -144,11 +146,11 @@ class robot:
         self.th.set_var("motor.left.target", 0)
         self.th.set_var("motor.right.target", 0)
 
-    def clockwise(self):
+    def anticlockwise(self):
         self.th.set_var("motor.left.target", 2**16-100)
         self.th.set_var("motor.right.target", 100)
     
-    def anticlockwise(self):
+    def clockwise(self):
         self.th.set_var("motor.left.target", 100)
         self.th.set_var("motor.right.target", 2**16-100)
 
@@ -164,11 +166,12 @@ class robot:
             delta_t = t1 - t0 - t
             self.forward()
             t = t1 - t0
-            self.odometry(delta_t)
+            self.odometry_forward(delta_t)
         if t>= dt:
             self.stop()
         else: #if got out of "while" because saw something, enter local avoidance
             self.local_avoidance()
+        print("Theta après run_forward = ", self.theta)
    
     def turn(self,alpha):
     
@@ -180,7 +183,7 @@ class robot:
             while self.theta < theta_init + alpha:
                 t1 = time.time()
                 delta_t = t1 - t0 - t
-                self.clockwise()
+                self.anticlockwise()
                 t = t1 - t0
                 self.odometry(delta_t)
             self.stop()
@@ -189,7 +192,7 @@ class robot:
             while self.theta > theta_init + alpha:
                 t1 = time.time()
                 delta_t = t1 - t0 - t
-                self.anticlockwise()
+                self.clockwise()
                 t = t1 - t0
                 self.odometry(delta_t)
             self.stop()
@@ -219,9 +222,28 @@ class robot:
         d_s = (d_r + d_l)/2
     
         d_theta = (d_r - d_l)/b
-        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
-        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+        self.x = self.x  + 0.51/0.45858710985187795*d_s * math.cos(self.theta + d_theta/2)
+        self.y = self.y  + 0.4/0.34427563455303434*d_s * math.sin(self.theta + d_theta/2)
         self.theta = self.theta + d_theta
+        self.log.append([self.x,self.y,self.theta])
+        
+    def odometry_forward(self,delta_t):
+        b = self.b
+        v = self.v
+        s_r = self.th.get_var('motor.right.speed')
+        s_l = self.th.get_var('motor.left.speed') 
+        if s_r > 2**8:
+            s_r = s_r/2**16 - 100
+        if s_l > 2**8:
+            s_l = s_l/2**16 - 100
+        d_r = s_r/100 * v * delta_t
+        d_l = s_l/100 * v * delta_t
+      
+        d_s = (d_r + d_l)/2
+    
+        d_theta = (d_r - d_l)/b
+        self.x = self.x  + d_s * math.cos(self.theta)
+        self.y = self.y  + d_s * math.sin(self.theta)
         self.log.append([self.x,self.y,self.theta])
     
     

@@ -13,8 +13,8 @@ class vision:
     def get_camera_image(self):
         webcam = cv2.VideoCapture(self.camera_ip)
         check, frame = webcam.read()
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cv2.imwrite(filename='media/saved_img.png', img=frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         webcam.release()
         return frame
 
@@ -133,6 +133,7 @@ class vision:
         # convert the image to grayscale, blur it, and find edges
         # in the image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
         gray = cv2.GaussianBlur(gray, (5,5), 0)
         edged = cv2.Canny(gray, 75, 200)
         
@@ -178,7 +179,7 @@ class vision:
     def create_obstacle_map(self, warped):
         
         # look for black pixels only
-        color_tolerance = 50
+        color_tolerance = 30
         black_thresh = cv2.inRange(warped, np.array([-color_tolerance, -color_tolerance, -color_tolerance]), np.array([color_tolerance, color_tolerance, color_tolerance]))
         black_mask = 255 -black_thresh 
         black_mask_rgb = cv2.cvtColor(black_mask, cv2.COLOR_GRAY2RGB)
@@ -188,8 +189,10 @@ class vision:
         
         # remove noise: close then open
         black_masked_gray= cv2.cvtColor(black_masked_rgb, cv2.COLOR_RGB2GRAY)
-        se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,5))
-        se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (15,15))
+        k1 = 9
+        k2 = 25
+        se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (k1,k1))
+        se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (k2,k2))
         mask_close = cv2.morphologyEx(black_masked_gray, cv2.MORPH_CLOSE, se1)
         mask_close_open = cv2.morphologyEx(mask_close, cv2.MORPH_OPEN, se2)
         
@@ -260,13 +263,13 @@ class vision:
         color range of feature.
         '''
         
-        color_tolerance = 50
+        color_tolerance = 30
         
         map_filtered_gray = self.apply_color_filter(map_image, feature_color, color_tolerance)
         
         feature_pixels_coordinates = cv2.findNonZero(map_filtered_gray)
         feature_position = np.average(feature_pixels_coordinates,axis=0)[0]    
-        
+        print("From locate feature", feature_position)
         if self.plot:
             plt.figure()
             plt.imshow(map_filtered_gray, cmap='gray')
@@ -298,7 +301,7 @@ class vision:
         Get average position of key points.
         '''
         
-        color_tolerance = 50
+        color_tolerance = 30
         
         feature_filtered_gray = self.apply_color_filter(feature_image, feature_color, color_tolerance)
         map_filtered_gray = self.apply_color_filter(map_image, feature_color, color_tolerance)
@@ -356,10 +359,10 @@ class vision:
 
     def locate_thymio(self, map_image, feature_image_front, feature_color_front, feature_image_back, feature_color_back, scaling_px_2_m):
         # feature 1 is at the front of thymio, feature 2 is at the back
-        feature_position_front = self.locate_feature_in_map_orb(map_image, feature_image_front, feature_color_front)
-        feature_position_back = self.locate_feature_in_map_orb(map_image, feature_image_back, feature_color_back)
-        #feature_position_front = self.locate_feature_in_map_colorpixels(feature_color_front, map_image)
-        #feature_position_back = self.locate_feature_in_map_colorpixels(feature_color_back, map_image)
+        # feature_position_front = self.locate_feature_in_map_orb(map_image, feature_image_front, feature_color_front)
+        # feature_position_back = self.locate_feature_in_map_orb(map_image, feature_image_back, feature_color_back)
+        feature_position_front = self.locate_feature_in_map_colorpixels(feature_color_front, map_image)
+        feature_position_back = self.locate_feature_in_map_colorpixels(feature_color_back, map_image)
         orientation_vector = feature_position_front - feature_position_back
         
         thymio_x_m =  feature_position_back[0]  * scaling_px_2_m
@@ -367,7 +370,7 @@ class vision:
         thymio_theta_rad = math.atan2(orientation_vector[1], orientation_vector[0])
         cv2.line(map_image, (int(feature_position_front[0]), int(feature_position_front[1])), (int(feature_position_back[0]), int(feature_position_back[1])), (255, 0, 0), 30)
         plt.imshow(map_image)
-        print(feature_position_front*scaling_px_2_m,feature_position_back*scaling_px_2_m)
+        print(feature_position_front,feature_position_back)
         return thymio_x_m, thymio_y_m, thymio_theta_rad
     
     def scale_map(self,map_image, map_x, map_y):
@@ -378,8 +381,8 @@ class vision:
         orig = map_image.copy()
         scaled_map =  cv2.resize(orig, (orig_width,new_height))
         scaling_px_2_m = map_y/scaled_map.shape[0]
-        #return scaled_map, scaling_px_2_m
-        return map_image,map_y/map_image.shape[0]
+        return scaled_map, scaling_px_2_m
+        #return map_image,map_y/map_image.shape[0]
     
     def draw_line(pointA,pointB,img):
         cv2.line(img, (int(pointA[0]), int(pointA[1])), (int(pointB[0]), int(pointB[1])), (255, 0, 0), 30)
