@@ -15,10 +15,10 @@ th = Thymio.serial(port="\\.\COM5", refreshing_rate=0.1)
 all_target_points = [[0,0],[0.15,0.20],[0.30,0]]
 theta_0 = 0
 x_0 = 0
-y_0 = 0 
+y_0 = 0
+v = 0.03275
 
-
-my_robot = robot.robot(th, all_target_points,x_0,y_0,theta_0)
+my_robot = robot.robot(th, all_target_points,x_0,y_0,theta_0, v, obstacle_vertices_m)
 
 #%%
 
@@ -143,7 +143,12 @@ def kalman_filter(speed, acceleration, x_est_prev, P_est_prev):
      
     return x_est, P_est
 
+x = [speed, acceleration]
+x(k+1) = A*x(k) + ..
+A = []
 
+x_new = [x, y, theta, speed]
+u
 
 # script
 # =============================================================================

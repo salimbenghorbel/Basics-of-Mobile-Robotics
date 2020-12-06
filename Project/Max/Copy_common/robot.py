@@ -6,7 +6,7 @@ import pyvisgraph as vg
 class robot:
     
     
-    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b, vertices_array,verbose = True):
+    def __init__(self,th, all_target_points, x_0, y_0, theta_0, v, vertices_array,verbose = True):
         """
         iniatilisation of the robot class, containing the position and angle of the thymio 
         but also the target points and its speed
@@ -22,9 +22,9 @@ class robot:
         self.v = v
         self.vertices_array = vertices_array
         self.log = [[x_0,y_0,theta_0]]
-        self.b = b
-        self.v_right = 100
-        self.v_left = 100
+        self.b = 0.095
+        self.v_right = 104
+        self.v_left = 96
       
        
     
@@ -183,7 +183,7 @@ class robot:
             delta_t = t1 - t0 - t
             self.forward()
             t = t1 - t0
-            self.odometry_forward(delta_t)
+            self.odometry(delta_t)
         if t>= dt:
             self.stop()
         else: #if got out of "while" because saw something, enter local avoidance
@@ -214,6 +214,7 @@ class robot:
                 self.clockwise()
                 t = t1 - t0
                 self.odometry(delta_t)
+                
             self.stop()
 
         
@@ -226,35 +227,37 @@ class robot:
             s_r = s_r/2**16 - self.v_right
         if s_l > 2**8:
             s_l = s_l/2**16 - self.v_left
-        d_r = s_r/100 * v * delta_t
-        d_l = s_l/100 * v * delta_t
-      
-        d_s = (d_r + d_l)/2
-    
-        d_theta = (d_r - d_l)/b
-        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
-        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
-        self.theta = self.theta + d_theta
-        self.log.append([self.x,self.y,self.theta])
-        
-    def odometry_forward(self,delta_t):
-        b = self.b
-        v = self.v
-        s_r = self.th.get_var('motor.right.speed')
-        s_l = self.th.get_var('motor.left.speed') 
-        if s_r > 2**8:
-            s_r = s_r/2**16 - self.v_right
-        if s_l > 2**8:
-            s_l = s_l/2**16 - self.v_left
-        d_r = s_r/100 * v * delta_t
-        d_l = s_l/100 * v * delta_t
+        d_r = s_r/self.v_right * v * delta_t
+        d_l = s_l/self.v_left * v * delta_t
       
         d_s = (d_r + d_l)/2
     
         d_theta = (d_r - d_l)/b
         self.x = self.x  + d_s * math.cos(self.theta)
         self.y = self.y  + d_s * math.sin(self.theta)
+        self.theta = self.theta + d_theta
+        self.theta = ((self.theta + math.pi)%(2*math.pi) - math.pi)
         self.log.append([self.x,self.y,self.theta])
+        
+    # def odometry_forward(self,delta_t):
+    #     b = self.b
+    #     v = self.v
+    #     s_r = self.th.get_var('motor.right.speed')
+    #     s_l = self.th.get_var('motor.left.speed') 
+    #     if s_r > 2**8:
+    #         s_r = s_r/2**16 - self.v_right
+    #     if s_l > 2**8:
+    #         s_l = s_l/2**16 - self.v_left
+    #     d_r = s_r/100 * v * delta_t
+    #     d_l = s_l/100 * v * delta_t
+      
+    #     d_s = (d_r + d_l)/2
+    
+    #     d_theta = (d_r - d_l)/b
+    #     self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
+    #     self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
+    #     self.theta = self.theta + d_theta
+    #     self.log.append([self.x,self.y,self.theta])
     
     
     

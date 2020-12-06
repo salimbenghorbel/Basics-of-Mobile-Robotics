@@ -9,11 +9,13 @@ class vision:
     def __init__(self, camera_ip, plot):
         self.camera_ip = camera_ip
         self.plot = plot
+        self.camera_img_idx = 0
     
     def get_camera_image(self):
         webcam = cv2.VideoCapture(self.camera_ip)
         check, frame = webcam.read()
-        cv2.imwrite(filename='media/saved_img.png', img=frame)
+        cv2.imwrite(filename='media/saved_img{}.png'.format(self.camera_img_idx), img=frame )
+        self.camera_img_idx =self.camera_img_idx+1
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         webcam.release()
         return frame
@@ -124,6 +126,23 @@ class vision:
 
 
     def warp_map(self, image):
+        '''
+        cr: https://medium.com/@evergreenllc2020/building-document-scanner-with-opencv-and-python-2306ee65c3db
+        This image takes as input an image of a map taken from a random angle,
+        detects the rectangular shape of the map and returns a rectangular image
+        containing only the map.
+        
+        Parameters
+        ----------
+        image : image
+            Image containing the map taken from a random angle.
+
+        Returns
+        -------
+        warped : image
+            An image of the map with transformed perspective.
+
+        '''
         # get the image and compute the ratio of the old height
         # to the new height, clone it, and resize it
         ratio = image.shape[0] / 500.0
@@ -133,8 +152,8 @@ class vision:
         # convert the image to grayscale, blur it, and find edges
         # in the image
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        k = 15
-        gray = cv2.GaussianBlur(gray, (k,k), 0)
+        
+        gray = cv2.GaussianBlur(gray, (5,5), 0)
         edged = cv2.Canny(gray, 75, 200)
         
         #show the original image and the edge detected image
@@ -149,7 +168,7 @@ class vision:
         # largest ones, and initialize the screen contour
         cnts = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         cnts = imutils.grab_contours(cnts)
-        cnts = sorted(cnts, key = cv2.contourArea, reverse = True)[:5]
+        cnts = sorted(cnts, key = ( lambda x: cv2.arcLength(x,True)), reverse = True)[:5]
         # loop over the contours
         for c in cnts:
             # approximate the contour
@@ -161,10 +180,9 @@ class vision:
                 screenCnt = approx
                 break
             
-        # c = cnts[0]
-        # peri = cv2.arcLength(c, True)
-        # screenCnt = cv2.approxPolyDP(c, 0.1 * peri, True)
-            
+        c = cnts[0]
+        screenCnt = self.order_points(c.reshape(-1,2))
+        
         # apply the four point transform to obtain a top-down
         # view of the original image
         warped = self.four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
@@ -217,7 +235,7 @@ class vision:
     def dilate_obstacle_map(self, obstacle_map, thymio_clearance_px):
         # dilate
         kernel = np.ones((thymio_clearance_px,thymio_clearance_px),np.uint8)
-        dilated_obstacle_map = cv2.dilate(obstacle_map,kernel,iterations = 1)
+        dilated_obstacle_map = cv2.dilate(obstacle_map,kernel,iterations = 1, borderType = cv2.BORDER_REFLECT)
         if self.plot:
             plt.figure()
             plt.imshow(dilated_obstacle_map, cmap='gray')
