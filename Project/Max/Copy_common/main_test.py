@@ -80,12 +80,9 @@ utilities.draw_path(all_target_points, scaling_px_2_m,warped)
 
 #%% boucle du prog
 while my_robot.on_goal() == False:
+    
     my_robot.find_next_target_point()
-    
-    # while my_robot.on_target_point() == False:
-    # print("pas trouvé tg")
     print("\t Pos [x,y] = ",my_robot.x,my_robot.y)
-    
     my_robot.turn_to_target_point()  
     my_robot.advance_to_target_point()
     print("t'as 10 sec pour ta photo")
@@ -119,18 +116,7 @@ while my_robot.on_goal() == False:
     print("trouvé le tg")
     print("\t Pos [x,y] = ",my_robot.x,my_robot.y)
     
-    # if my_robot.on_target_point() == False:
-        
-    #     print("pas trouvé le tg")
-    #     print("Pos [x,y] = ",my_robot.x,my_robot.y)
-    #     my_robot.turn_to_target_point()  
-    #     my_robot.advance_to_target_point()
-        
-        
-    
-        
-    # else: 
-    #     print("trouvé le TG")
+ 
     
 
 print('arrivé c la fête')

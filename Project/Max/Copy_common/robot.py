@@ -7,6 +7,11 @@ class robot:
     
     
     def __init__(self,th, all_target_points, x_0, y_0, theta_0, v,b, vertices_array,verbose = True):
+        """
+        iniatilisation of the robot class, containing the position and angle of the thymio 
+        but also the target points and its speed
+        """
+        
         self.x = x_0
         self.y = y_0
         self.theta = theta_0
@@ -18,10 +23,15 @@ class robot:
         self.vertices_array = vertices_array
         self.log = [[x_0,y_0,theta_0]]
         self.b = b
+        self.v_right = 100
+        self.v_left = 100
       
        
     
     def find_next_target_point(self):
+        """
+        find the next target points in the list f all target points
+        """
         i = self.all_target_points.index(self.target_point)
         self.target_point[0] = self.all_target_points[i+1][0]    
         self.target_point[1] = self.all_target_points[i+1][1]
@@ -45,6 +55,9 @@ class robot:
     
 
     def on_target_point(self):
+        """
+        check if the robot is on the target point with a tolerance R
+        """
         R = 0.05
         d_x = self.target_point[0] - self.x
         d_y = self.target_point[1] - self.y
@@ -58,6 +71,9 @@ class robot:
             print('false')
 
     def on_goal(self):
+        """
+        check if the robot is on the target point with a tolerance R
+        """
         R = 0.05
         d_x = self.all_target_points[-1][0] - self.x
         d_y = self.all_target_points[-1][1] - self.y
@@ -133,29 +149,30 @@ class robot:
 
         self.turn(angle)
         self.run_forward(d)
-        # self.turn_to_target_point()
-        # self.advance_to_target_point()
-   
    
         
     def forward(self):
-        self.th.set_var("motor.left.target", 100)
-        self.th.set_var("motor.right.target", 100)
+        self.th.set_var("motor.left.target", self.v_left)
+        self.th.set_var("motor.right.target", self.v_right)
     
     def stop(self):
         self.th.set_var("motor.left.target", 0)
         self.th.set_var("motor.right.target", 0)
 
     def anticlockwise(self):
-        self.th.set_var("motor.left.target", 2**16-100)
-        self.th.set_var("motor.right.target", 100)
+        self.th.set_var("motor.left.target", 2**16-self.v_left)
+        self.th.set_var("motor.right.target", self.v_right)
     
     def clockwise(self):
-        self.th.set_var("motor.left.target", 100)
-        self.th.set_var("motor.right.target", 2**16-100)
+        self.th.set_var("motor.left.target", self.v_left)
+        self.th.set_var("motor.right.target", 2**16-self.v_right)
 
 
     def run_forward(self,d):
+        """
+        Move the robot forward of a distance D and whith the prox sensor checking
+        """
+
         v = self.v
         dt = d/v 
         t0 = time.time()
@@ -174,7 +191,9 @@ class robot:
         print("Theta après run_forward = ", self.theta)
    
     def turn(self,alpha):
-    
+        """
+     turn the robot of an angle alpha
+        """
         t0 = time.time()
         t1 = 0
         t = 0
@@ -197,15 +216,6 @@ class robot:
                 self.odometry(delta_t)
             self.stop()
 
-    #def avoid_global_obstacle(self):
-     #  p = vg.Point( self.x + 0.05 * math.cos(self.theta), self.y + 0.05 * math.sin(self.theta))
-      #  graph = vg.VisGraph()
-       # graph.build(self.obstacles)
-        #obstacle = vg.point_in_polygon(p, graph)
-        ##   return True
-        #else: 
-         #   return False
-          #  print('global obstacle')
         
     def odometry(self,delta_t):
         b = self.b
@@ -213,17 +223,17 @@ class robot:
         s_r = self.th.get_var('motor.right.speed')
         s_l = self.th.get_var('motor.left.speed') 
         if s_r > 2**8:
-            s_r = s_r/2**16 - 100
+            s_r = s_r/2**16 - self.v_right
         if s_l > 2**8:
-            s_l = s_l/2**16 - 100
+            s_l = s_l/2**16 - self.v_left
         d_r = s_r/100 * v * delta_t
         d_l = s_l/100 * v * delta_t
       
         d_s = (d_r + d_l)/2
     
         d_theta = (d_r - d_l)/b
-        self.x = self.x  + 0.51/0.45858710985187795*d_s * math.cos(self.theta + d_theta/2)
-        self.y = self.y  + 0.4/0.34427563455303434*d_s * math.sin(self.theta + d_theta/2)
+        self.x = self.x  + d_s * math.cos(self.theta + d_theta/2)
+        self.y = self.y  + d_s * math.sin(self.theta + d_theta/2)
         self.theta = self.theta + d_theta
         self.log.append([self.x,self.y,self.theta])
         
@@ -233,9 +243,9 @@ class robot:
         s_r = self.th.get_var('motor.right.speed')
         s_l = self.th.get_var('motor.left.speed') 
         if s_r > 2**8:
-            s_r = s_r/2**16 - 100
+            s_r = s_r/2**16 - self.v_right
         if s_l > 2**8:
-            s_l = s_l/2**16 - 100
+            s_l = s_l/2**16 - self.v_left
         d_r = s_r/100 * v * delta_t
         d_l = s_l/100 * v * delta_t
       
