@@ -678,7 +678,7 @@ class vision:
 '''
 Example of use for the vision module API.
 '''
-if True:
+if False:
     map_x = 0.89
     map_y = 0.86
     thymio_clearance_m = 0.12
